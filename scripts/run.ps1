@@ -5,7 +5,9 @@ param(
     [string]$Attack = 'attacks/00_static_marker/attack.py',
     [double]$BudgetSeconds = 30,
     [int]$CandidateCount = 32,
-    [string]$ModelPath
+    [string]$ModelPath,
+    [int]$GpuLayers = -1,
+    [string]$TensorSplit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,10 +23,14 @@ $Arguments = @(
     '--agent', $Agent,
     '--attack', $Attack,
     '--budget-s', $BudgetSeconds,
-    '--candidate-count', $CandidateCount
+    '--candidate-count', $CandidateCount,
+    '--gpu-layers', $GpuLayers
 )
 if ($ModelPath) {
     $Arguments += @('--model-path', $ModelPath)
+}
+if ($TensorSplit) {
+    $Arguments += @('--tensor-split', $TensorSplit)
 }
 
 Push-Location $ProjectRoot

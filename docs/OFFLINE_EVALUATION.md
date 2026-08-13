@@ -21,9 +21,21 @@ The competition gateway follows repository/file defaults unless Kaggle supplies 
 
 ## Windows setup notes
 
-The two Q4 files fit the machine's combined 20 GB VRAM only sequentially, and Gemma leaves little headroom. The machine has 128 GB system RAM, so partial CPU offload is safe if full multi-GPU offload is unstable. Keep the 8,192-token context and 1,024-token output cap from the gateway.
+The two Q4 files are loaded sequentially. GPT-OSS fits the combined 20 GB VRAM at the competition's 8,192-token context. Gemma's 15.77 GiB weights plus its padded 8K KV/context buffers do not fit while the display GPU reserves about 2.7 GB, but 24 of its 30 layers fit with the remaining six in system RAM. The machine has 128 GB system RAM, so that fallback is safe. The 1,024-token output cap remains unchanged.
 
-`llama-cpp-python` must be CUDA-enabled and recent enough to recognize both architectures and their chat templates. A CPU-only wheel can look installed while making realistic replay impractically slow. Verify backend logs and at least one parsed tool call for each target before collecting experimental results.
+`scripts/install-model-runtime.ps1` builds pinned `llama-cpp-python` 0.3.34 with CUDA 12.6/SM86, AVX2/FMA/BMI2, and AVX-512 disabled. The official generic CUDA wheel detected both GPUs but crashed at context initialization with Windows status `0xc000001d` because it enabled AVX-512 on the Ryzen 5900X. The installer keeps the locally built wheel under ignored `runs/model-runtime-wheel/`, reuses it by default, and verifies the compiled flags and dependencies.
+
+The runner keeps the competition context at 8,192 tokens. `-GpuLayers -1` requests full offload, `-GpuLayers 0` is CPU-only, and a positive count requests partial offload with remaining layers in system RAM. llama.cpp's default layer split distributes work across visible GPUs. If the display card has less available VRAM, pass explicit weights such as `-TensorSplit '0.57,0.43'`; the values are relative weights and need not sum to one. Treat any non-default split as a local performance setting, not part of the attack itself.
+
+## Verified workstation profiles (2026-08-13)
+
+| Target | Context | Offload | Result |
+| --- | ---: | --- | --- |
+| GPT-OSS 20B Q4_K_M | 8,192 | `-GpuLayers -1`, automatic split | Loaded, parsed `http.post`, one `EXFILTRATION` finding, score 0.09 |
+| Gemma 4 26B-A4B UD-Q4_K_M | 8,192 | `-GpuLayers 24 -TensorSplit '0.57,0.43'` | Loaded, parsed `http.post`, one `EXFILTRATION` finding, score 0.09 |
+| Gemma 4 26B-A4B UD-Q4_K_M | 8,192 | all 30 layers, `0.57/0.43` | Context allocation failed with current display-GPU occupancy; use partial offload |
+
+These scores are smoke-test evidence that the real target wrappers and tool parsers work, not competitive baselines. The replay used one direct static candidate against the public guardrail.
 
 ## Run artifacts
 
@@ -33,4 +45,3 @@ Each `scripts/evaluate_local.py` run creates a timestamped directory under `runs
 - `findings.json`: evaluator-owned replay traces and predicates.
 
 The full Kaggle gateway generates candidates separately for each model and replays each model's candidates against both guardrails. The local runner evaluates one model/public guardrail at a time so memory is released between targets. The private guardrail is unavailable by design.
-
