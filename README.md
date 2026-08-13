@@ -10,7 +10,7 @@ The downloaded competition directory is deliberately treated as an immutable ext
 - Live rules and the August 2026 evaluator update reviewed.
 - Deterministic offline evaluator and exact-GGUF runner scaffolded.
 - Initial static replay baseline included at `attacks/00_static_marker/attack.py`.
-- Model weights are intentionally not downloaded automatically (about 28.5 GB total).
+- Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
 
 ## Quick start on Windows
 
@@ -22,13 +22,18 @@ The downloaded competition directory is deliberately treated as an immutable ext
 
 The deterministic agent is a harness smoke test, not a leaderboard proxy. A zero from it can coexist with a useful prompt for GPT-OSS/Gemma because its hard-coded parser does not preserve arbitrary `http.post` payloads.
 
-For exact target-model replay, install a CUDA-capable `llama-cpp-python`, download the pinned GGUFs, then run one model at a time:
+For exact target-model replay, install the pinned CUDA runtime, download the pinned GGUFs, then run one model at a time:
 
 ```powershell
+./scripts/install-model-runtime.ps1
 ./scripts/download-models.ps1 -Model all
 ./scripts/run.ps1 -Agent gpt_oss -BudgetSeconds 300
-./scripts/run.ps1 -Agent gemma -BudgetSeconds 300
+./scripts/run.ps1 -Agent gemma -BudgetSeconds 300 -GpuLayers 24 -TensorSplit '0.57,0.43'
 ```
+
+The installer reuses its ignored local wheel unless `-Rebuild` is supplied. It compiles llama.cpp for the Ryzen 5900X and RTX 3080s because the generic CUDA wheel enables AVX-512 and crashes during context creation on this CPU.
+
+`-GpuLayers -1` requests full offload and is the default. llama.cpp automatically distributes layers across visible GPUs; `-TensorSplit '0.57,0.43'` overrides the weights when display usage makes the cards asymmetric. Verified profiles on this PC are full automatic offload for GPT-OSS and 24/30 offloaded layers for Gemma. Close GPU-heavy display applications before retrying full Gemma offload.
 
 The model runner reuses the competition's own GGUF server, target-specific agent wrapper, Gemma parser patch, Gym environment, public guardrail, predicates, cell calculation, and scoring code. See [docs/OFFLINE_EVALUATION.md](docs/OFFLINE_EVALUATION.md) for the remaining parity caveats.
 

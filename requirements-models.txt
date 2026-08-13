@@ -1,5 +1,9 @@
-# Install this only after a CUDA-capable wheel/build suitable for the machine is selected.
-# Gemma 4 support requires a recent llama.cpp backend; verify a real tool call before
-# treating an installation as competition-parity.
-llama-cpp-python
-
+# llama-cpp-python 0.3.34 itself is built and installed by
+# scripts/install-model-runtime.ps1 with workstation-compatible CPU/CUDA flags.
+diskcache==5.6.3
+grpcio==1.83.0
+grpcio-tools==1.71.2
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+protobuf==5.29.6
+setuptools==84.0.0
