@@ -1,0 +1,9 @@
+{
+  "algorithm": "sha256(sorted('<file_sha256>  <posix_relative_path>') joined with LF)",
+  "bundle": "ai-agent-security-multi-step-tool-attacks",
+  "file_count": 145,
+  "total_bytes": 12189493,
+  "tree_sha256": "8a942bd5a4d0fd451e5788884517f10cdc46dc91f3fbdcc9bee76ad6d3f978ee",
+  "sdk_distribution": "aicomp-sdk 3.1.2"
+}
+

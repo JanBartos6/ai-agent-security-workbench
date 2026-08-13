@@ -1,0 +1,4 @@
+gymnasium==0.29.1
+huggingface-hub>=0.34,<2
+pydantic>=2,<3
+pytest>=8,<9

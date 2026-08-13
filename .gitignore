@@ -1,0 +1,23 @@
+# Local competition bundle: keep byte-for-byte intact and out of Git.
+/ai-agent-security-multi-step-tool-attacks/
+
+# Python and tooling.
+/.venv/
+/.pytest_cache/
+/**/__pycache__/
+*.py[cod]
+/.ruff_cache/
+
+# Large models and generated outputs.
+/models/
+/runs/
+/dist/
+
+# Local credentials and machine-specific configuration.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+kaggle.json
+

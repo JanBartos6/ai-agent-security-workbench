@@ -1,0 +1,5 @@
+# Install this only after a CUDA-capable wheel/build suitable for the machine is selected.
+# Gemma 4 support requires a recent llama.cpp backend; verify a real tool call before
+# treating an installation as competition-parity.
+llama-cpp-python
+
