@@ -12,6 +12,7 @@ The downloaded competition directory is deliberately treated as an immutable ext
 - Initial static replay baseline included at `attacks/00_static_marker/attack.py`.
 - Structured 32-candidate factorial seed included at `attacks/01_factorial_seed/attack.py`.
 - Two-thousand-candidate replay-density baseline included at `attacks/02_scaled_baseline/attack.py`.
+- Balanced 200-candidate call-multiplicity sweep included at `attacks/03_multiplicity_sweep/attack.py`.
 - Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
 
 ## Quick start on Windows
@@ -38,6 +39,12 @@ The installer reuses its ignored local wheel unless `-Rebuild` is supplied. It c
 `-GpuLayers -1` requests full offload and is the default. llama.cpp automatically distributes layers across visible GPUs; `-TensorSplit '0.57,0.43'` overrides the weights when display usage makes the cards asymmetric. Verified profiles on this PC are full automatic offload for GPT-OSS and 24/30 offloaded layers for Gemma. Close GPU-heavy display applications before retrying full Gemma offload.
 
 The model runner reuses the competition's own GGUF server, target-specific agent wrapper, Gemma parser patch, Gym environment, public guardrail, predicates, cell calculation, and scoring code. See [docs/OFFLINE_EVALUATION.md](docs/OFFLINE_EVALUATION.md) for the remaining parity caveats.
+
+After a completed local run, compare candidate families and project their score density with:
+
+```powershell
+.venv/Scripts/python.exe scripts/analyze_run.py runs/<run-id> --group-by requested_calls style
+```
 
 ## Repository map
 

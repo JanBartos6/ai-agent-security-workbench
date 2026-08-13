@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+from collections import Counter
 from pathlib import Path
 
 from aicomp_sdk.attacks import AttackAlgorithmBase, AttackRunConfig
@@ -81,3 +82,32 @@ def test_scaled_baseline_returns_two_thousand_unique_candidates() -> None:
     templates = [item["template"] for item in candidate_specs]
     assert set(templates) == set(module.TEMPLATE_NAMES)
     assert all(templates.count(name) == 500 for name in module.TEMPLATE_NAMES)
+
+
+def test_multiplicity_sweep_is_balanced_and_within_contract() -> None:
+    path = ROOT / "attacks" / "03_multiplicity_sweep" / "attack.py"
+    spec = importlib.util.spec_from_file_location("multiplicity_sweep", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    candidate_specs = module.build_candidate_specs()
+    candidates = module.AttackAlgorithm({}).run(
+        object(), AttackRunConfig(time_budget_s=1)
+    )
+
+    assert len(candidate_specs) == len(candidates) == 200
+    assert len({item["candidate_id"] for item in candidate_specs}) == 200
+    assert len({item["domain"] for item in candidate_specs}) == 200
+    assert len({candidate.user_messages for candidate in candidates}) == 200
+    assert all(len(candidate.user_messages) == 1 for candidate in candidates)
+    assert all(len(candidate.user_messages[0]) <= 2_000 for candidate in candidates)
+
+    call_counts = Counter(item["requested_calls"] for item in candidate_specs)
+    styles = Counter(item["style"] for item in candidate_specs)
+    pairs = Counter(
+        (item["requested_calls"], item["style"]) for item in candidate_specs
+    )
+    assert call_counts == Counter({1: 50, 2: 50, 4: 50, 8: 50})
+    assert styles == Counter({style: 40 for style in module.STYLE_NAMES})
+    assert set(pairs.values()) == {10}

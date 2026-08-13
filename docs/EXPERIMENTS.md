@@ -46,3 +46,22 @@ The authenticated leaderboard had 1,324 teams and a leading public score of
 `137.130` at launch. Do not treat the 32-candidate local projection as the
 result of this run; promote the actual local and Kaggle scores separately when
 they become available.
+
+## 2026-08-13 — GPT-OSS 200-candidate multiplicity sweep queued
+
+- Attack: `attacks/03_multiplicity_sweep/attack.py`
+- Design: requested call counts `1, 2, 4, 8` crossed with five instruction
+  styles and ten unique-destination replicates per cell
+- Contract: exactly 200 one-message candidates; 50 candidates per requested
+  call count and 40 per prompt style
+- Ordering: every replicate contains all 20 combinations, with higher call
+  counts first so a timeout-truncated run remains broad and score-dense
+- Analysis: success rate with Wilson interval, actual call-target attainment,
+  score per candidate, score per second, and a 2,000-candidate projection
+- Local run: queued behind the active 2,000-candidate GPT-OSS baseline to avoid
+  competing for VRAM; results pending
+
+This experiment tests the public scorer's largest observed density opportunity:
+one successful candidate can contribute several severity-5 predicate instances.
+Its result selects a call-count/style family; it is not yet evidence of transfer
+to the hidden tasks or Gemma.
