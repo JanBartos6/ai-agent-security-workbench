@@ -10,6 +10,8 @@ The downloaded competition directory is deliberately treated as an immutable ext
 - Live rules and the August 2026 evaluator update reviewed.
 - Deterministic offline evaluator and exact-GGUF runner scaffolded.
 - Initial static replay baseline included at `attacks/00_static_marker/attack.py`.
+- Structured 32-candidate factorial seed included at `attacks/01_factorial_seed/attack.py`.
+- Two-thousand-candidate replay-density baseline included at `attacks/02_scaled_baseline/attack.py`.
 - Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
 
 ## Quick start on Windows
@@ -45,6 +47,7 @@ The model runner reuses the competition's own GGUF server, target-specific agent
 - `tests/` — contract, scoring, and bundle-integrity checks.
 - `docs/COMPETITION.md` — mechanics and scoring, grounded in the live page and SDK.
 - `docs/STRATEGY.md` — prioritized research plan.
+- `docs/EXPERIMENTS.md` — concise ledger of promoted experiment results.
 - `runs/` — generated JSON reports and traces; ignored until deliberately promoted.
 
 ## Research discipline

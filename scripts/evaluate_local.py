@@ -6,12 +6,16 @@ import importlib
 import importlib.util
 import json
 import os
+import statistics
 import sys
+import time
 from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
+from types import ModuleType
 from typing import Any
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +26,10 @@ if str(SDK_ROOT) not in sys.path:
 
 from aicomp_sdk.agents import AgentSelection  # noqa: E402
 from aicomp_sdk.attacks import AttackAlgorithmBase, AttackRunConfig  # noqa: E402
+from aicomp_sdk.core.cells import cell_signature  # noqa: E402
 from aicomp_sdk.core.env.api import EnvSelection  # noqa: E402
+from aicomp_sdk.core.predicates import eval_predicates  # noqa: E402
+from aicomp_sdk.evaluation import ops as evaluation_ops  # noqa: E402
 from aicomp_sdk.evaluation.reports import ReportProfile, build_evaluation_report  # noqa: E402
 from aicomp_sdk.evaluation.runner import evaluate_redteam  # noqa: E402
 
@@ -49,7 +56,7 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def load_attack(path: Path) -> type[AttackAlgorithmBase]:
+def load_attack(path: Path) -> tuple[type[AttackAlgorithmBase], ModuleType]:
     spec = importlib.util.spec_from_file_location("workbench_attack", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot import attack: {path}")
@@ -58,7 +65,58 @@ def load_attack(path: Path) -> type[AttackAlgorithmBase]:
     attack_cls = getattr(module, "AttackAlgorithm", None)
     if not isinstance(attack_cls, type) or not issubclass(attack_cls, AttackAlgorithmBase):
         raise TypeError("attack.py must define AttackAlgorithm(AttackAlgorithmBase)")
-    return attack_cls
+    return attack_cls, module
+
+
+def classify_trace(trace: dict[str, Any]) -> str:
+    events = list(trace.get("tool_events", []))
+    predicates = eval_predicates(trace)
+    if predicates:
+        return "scored"
+    if not events:
+        return "no_tool_call"
+    if any(
+        str(event.get("error") or "").startswith(("denied:", "confirm_required:"))
+        for event in events
+    ):
+        return "guardrail_block"
+    if any(event.get("ok") for event in events):
+        return "successful_no_predicate"
+    return "tool_error"
+
+
+def summarize_replays(records: list[dict[str, Any]]) -> dict[str, Any]:
+    elapsed = [float(record["elapsed_s"]) for record in records]
+    warm_elapsed = elapsed[1:]
+    outcomes = Counter(str(record["outcome"]) for record in records)
+    tool_call_count = sum(bool(record["trace"].get("tool_events")) for record in records)
+    successful_tool_count = sum(
+        any(event.get("ok") for event in record["trace"].get("tool_events", []))
+        for record in records
+    )
+    blocked_count = sum(
+        any(
+            str(event.get("error") or "").startswith(("denied:", "confirm_required:"))
+            for event in record["trace"].get("tool_events", [])
+        )
+        for record in records
+    )
+
+    return {
+        "replayed_candidates": len(records),
+        "tool_call_count": tool_call_count,
+        "tool_call_rate": tool_call_count / len(records) if records else 0.0,
+        "successful_tool_count": successful_tool_count,
+        "successful_tool_rate": successful_tool_count / len(records) if records else 0.0,
+        "guardrail_block_count": blocked_count,
+        "outcomes": dict(sorted(outcomes.items())),
+        "replay_elapsed_total_s": sum(elapsed),
+        "first_replay_s": elapsed[0] if elapsed else None,
+        "warm_replay_mean_s": statistics.mean(warm_elapsed) if warm_elapsed else None,
+        "warm_replay_median_s": statistics.median(warm_elapsed) if warm_elapsed else None,
+        "warm_replay_min_s": min(warm_elapsed) if warm_elapsed else None,
+        "warm_replay_max_s": max(warm_elapsed) if warm_elapsed else None,
+    }
 
 
 def resolve_model(agent: str, model_path: Path | None) -> tuple[Any, str, Any | None, Path | None]:
@@ -135,7 +193,7 @@ def main() -> int:
     args = parser.parse_args()
 
     attack_path = (ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack.resolve()
-    attack_cls = load_attack(attack_path)
+    attack_cls, attack_module = load_attack(attack_path)
     factory, label, model_server, resolved_model_path = resolve_model(args.agent, args.model_path)
     if model_server is not None:
         configure_model_server(
@@ -151,28 +209,49 @@ def main() -> int:
         max_tool_hops=8,
     )
 
+    replay_records: list[dict[str, Any]] = []
+    original_replay = evaluation_ops._replay_candidate_trace
+
+    def capture_replay(**kwargs: Any) -> dict[str, Any]:
+        started_at = time.perf_counter()
+        trace = original_replay(**kwargs)
+        elapsed_s = time.perf_counter() - started_at
+        predicates = eval_predicates(trace)
+        replay_records.append(
+            {
+                "candidate_index": int(kwargs["index"]),
+                "elapsed_s": elapsed_s,
+                "outcome": classify_trace(trace),
+                "predicates": predicates,
+                "score_cell_signature": cell_signature(trace.get("tool_events", [])),
+                "trace": trace,
+            }
+        )
+        return trace
+
     try:
-        if args.agent == "deterministic":
-            execution = evaluate_redteam(
-                attack_cls,
-                budget_s=args.budget_s,
-                agent_selection=AgentSelection.DETERMINISTIC,
-                env_selection=EnvSelection.GYM,
-                fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
-                attack_run_config=run_config,
-                attack_config={"candidate_count": args.candidate_count},
-            )
-        else:
-            execution = evaluate_redteam(
-                attack_cls,
-                budget_s=args.budget_s,
-                agent_factory=factory,
-                agent_label=label,
-                env_selection=EnvSelection.GYM,
-                fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
-                attack_run_config=run_config,
-                attack_config={"candidate_count": args.candidate_count},
-            )
+        with patch.object(evaluation_ops, "_replay_candidate_trace", capture_replay):
+            if args.agent == "deterministic":
+                execution = evaluate_redteam(
+                    attack_cls,
+                    budget_s=args.budget_s,
+                    agent_selection=AgentSelection.DETERMINISTIC,
+                    env_selection=EnvSelection.GYM,
+                    fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
+                    attack_run_config=run_config,
+                    attack_config={"candidate_count": args.candidate_count},
+                )
+            else:
+                execution = evaluate_redteam(
+                    attack_cls,
+                    budget_s=args.budget_s,
+                    agent_factory=factory,
+                    agent_label=label,
+                    env_selection=EnvSelection.GYM,
+                    fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
+                    attack_run_config=run_config,
+                    attack_config={"candidate_count": args.candidate_count},
+                )
     finally:
         if model_server is not None:
             model_server._unload_model()
@@ -188,6 +267,11 @@ def main() -> int:
         for finding in attack.findings
         for predicate in finding.get("predicates", [])
     )
+    replay_summary = summarize_replays(replay_records)
+    metadata_builder = getattr(attack_module, "build_candidate_specs", None)
+    candidate_manifest = (
+        metadata_builder(args.candidate_count) if callable(metadata_builder) else []
+    )
     summary = build_evaluation_report(execution, profile=ReportProfile.EVALUATE)
     summary["workbench"] = {
         "timestamp_utc": now.isoformat(),
@@ -202,9 +286,16 @@ def main() -> int:
         "gpu_layers": args.gpu_layers if resolved_model_path else None,
         "tensor_split": list(args.tensor_split) if args.tensor_split is not None else None,
         "context_size": 8192 if resolved_model_path else None,
+        "attack_elapsed_s": attack.time_taken,
+        "replay_diagnostics": replay_summary,
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (run_dir / "findings.json").write_text(json.dumps(attack.findings, indent=2), encoding="utf-8")
+    (run_dir / "replays.json").write_text(json.dumps(replay_records, indent=2), encoding="utf-8")
+    if candidate_manifest:
+        (run_dir / "candidate_manifest.json").write_text(
+            json.dumps(candidate_manifest, indent=2), encoding="utf-8"
+        )
 
     print(json.dumps(summary, indent=2))
     print(f"artifacts: {run_dir}")
