@@ -36,6 +36,7 @@ The model runner reuses the competition's own GGUF server, target-specific agent
 
 - `attacks/` — one self-contained `attack.py` per experiment.
 - `scripts/` — bootstrap, integrity, model download, evaluation, and PowerShell wrappers.
+- `requirements-dev.lock.txt` — exact verified Python 3.12 environment.
 - `tests/` — contract, scoring, and bundle-integrity checks.
 - `docs/COMPETITION.md` — mechanics and scoring, grounded in the live page and SDK.
 - `docs/STRATEGY.md` — prioritized research plan.
@@ -46,4 +47,3 @@ The model runner reuses the competition's own GGUF server, target-specific agent
 Every comparison should record the SDK tree hash, attack file hash, target model revision/hash, agent, guardrail, seed, candidate count, replay count, wall time, predicate counts, and normalized score. Change one experimental variable at a time. Do not compare pre-update and post-update Kaggle scores as though they came from the same evaluator.
 
 This project is for the competition's deterministic sandbox. It does not target live services or real credentials.
-

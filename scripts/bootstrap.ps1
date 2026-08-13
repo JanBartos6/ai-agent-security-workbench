@@ -10,8 +10,7 @@ if (-not (Test-Path $VenvPython)) {
 }
 
 & $VenvPython -m pip install --upgrade pip
-& $VenvPython -m pip install -r (Join-Path $ProjectRoot 'requirements-dev.txt')
+& $VenvPython -m pip install -r (Join-Path $ProjectRoot 'requirements-dev.lock.txt')
 
 Write-Output "Environment ready: $VenvPython"
 Write-Output 'Run ./scripts/verify.ps1 next.'
-
