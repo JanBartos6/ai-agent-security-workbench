@@ -111,3 +111,30 @@ def test_multiplicity_sweep_is_balanced_and_within_contract() -> None:
     assert call_counts == Counter({1: 50, 2: 50, 4: 50, 8: 50})
     assert styles == Counter({style: 40 for style in module.STYLE_NAMES})
     assert set(pairs.values()) == {10}
+
+
+def test_validation_fill_override_and_fallback_within_contract() -> None:
+    path = ROOT / "attacks" / "05_validation_fill" / "attack.py"
+    spec = importlib.util.spec_from_file_location("validation_fill", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert issubclass(module.AttackAlgorithm, AttackAlgorithmBase)
+
+    # Override path: exact count, single message, no probing.
+    candidates = module.AttackAlgorithm({"candidate_count": 4}).run(
+        object(), AttackRunConfig(time_budget_s=1)
+    )
+    assert len(candidates) == 4
+    assert all(1 <= len(candidate.user_messages) <= 32 for candidate in candidates)
+    assert all(len(message) <= 2_000 for candidate in candidates for message in candidate.user_messages)
+    assert len({candidate.user_messages for candidate in candidates}) == 4
+
+    # Unprobeable env -> safe blind fallback (FALLBACK_N < MAX_REPLAY_FINDINGS).
+    fallback = module.AttackAlgorithm({}).run(
+        object(), AttackRunConfig(time_budget_s=1)
+    )
+    assert len(fallback) == module.FALLBACK_N
+    assert 0 < len(fallback) < MAX_REPLAY_FINDINGS
+    assert all(len(candidate.user_messages) == 1 for candidate in fallback)
+    assert all(len(candidate.user_messages[0]) <= 2_000 for candidate in fallback)

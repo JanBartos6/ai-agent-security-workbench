@@ -13,6 +13,8 @@ The downloaded competition directory is deliberately treated as an immutable ext
 - Structured 32-candidate factorial seed included at `attacks/01_factorial_seed/attack.py`.
 - Two-thousand-candidate replay-density baseline included at `attacks/02_scaled_baseline/attack.py`.
 - Balanced 200-candidate call-multiplicity sweep included at `attacks/03_multiplicity_sweep/attack.py`.
+- Sixty-candidate Kaggle-harness control included at `attacks/04_kaggle_60_control/attack.py`; verified 60/60 scored locally on both GPT-OSS (full offload) and Gemma (24/30 layers).
+- Validation-fill + replay-safe sizing + latency-split forge included at `attacks/05_validation_fill/attack.py` (port of the proven ~84-89 public architecture); live-fill loop verified locally via `scripts/verify_fill.py`.
 - Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
 
 ## Quick start on Windows

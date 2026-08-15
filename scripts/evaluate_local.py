@@ -56,6 +56,13 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def append_jsonl(path: Path, record: dict[str, Any]) -> None:
+    """Persist one replay immediately so long model runs are observable."""
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, separators=(",", ":")))
+        handle.write("\n")
+
+
 def load_attack(path: Path) -> tuple[type[AttackAlgorithmBase], ModuleType]:
     spec = importlib.util.spec_from_file_location("workbench_attack", path)
     if spec is None or spec.loader is None:
@@ -194,6 +201,19 @@ def main() -> int:
 
     attack_path = (ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack.resolve()
     attack_cls, attack_module = load_attack(attack_path)
+    metadata_builder = getattr(attack_module, "build_candidate_specs", None)
+    candidate_manifest = (
+        metadata_builder(args.candidate_count) if callable(metadata_builder) else []
+    )
+    progress_started_at = datetime.now(timezone.utc)
+    progress_dir = ROOT / "runs" / "tmp" / "live-evaluations"
+    progress_dir.mkdir(parents=True, exist_ok=True)
+    progress_path = progress_dir / (
+        f"{progress_started_at.strftime('%Y%m%dT%H%M%SZ')}-{os.getpid()}-"
+        f"{args.agent}-{attack_path.parent.name}.jsonl"
+    )
+    progress_path.touch(exist_ok=False)
+    print(f"live replay progress: {progress_path}", flush=True)
     factory, label, model_server, resolved_model_path = resolve_model(args.agent, args.model_path)
     if model_server is not None:
         configure_model_server(
@@ -217,16 +237,23 @@ def main() -> int:
         trace = original_replay(**kwargs)
         elapsed_s = time.perf_counter() - started_at
         predicates = eval_predicates(trace)
-        replay_records.append(
-            {
-                "candidate_index": int(kwargs["index"]),
-                "elapsed_s": elapsed_s,
-                "outcome": classify_trace(trace),
-                "predicates": predicates,
-                "score_cell_signature": cell_signature(trace.get("tool_events", [])),
-                "trace": trace,
-            }
+        candidate_index = int(kwargs["index"])
+        record = {
+            "candidate_index": candidate_index,
+            "elapsed_s": elapsed_s,
+            "outcome": classify_trace(trace),
+            "predicates": predicates,
+            "score_cell_signature": cell_signature(trace.get("tool_events", [])),
+            "trace": trace,
+        }
+        replay_records.append(record)
+        progress_record = dict(record)
+        progress_record["metadata"] = (
+            candidate_manifest[candidate_index]
+            if candidate_index < len(candidate_manifest)
+            else {}
         )
+        append_jsonl(progress_path, progress_record)
         return trace
 
     try:
@@ -268,10 +295,6 @@ def main() -> int:
         for predicate in finding.get("predicates", [])
     )
     replay_summary = summarize_replays(replay_records)
-    metadata_builder = getattr(attack_module, "build_candidate_specs", None)
-    candidate_manifest = (
-        metadata_builder(args.candidate_count) if callable(metadata_builder) else []
-    )
     summary = build_evaluation_report(execution, profile=ReportProfile.EVALUATE)
     summary["workbench"] = {
         "timestamp_utc": now.isoformat(),
@@ -287,6 +310,7 @@ def main() -> int:
         "tensor_split": list(args.tensor_split) if args.tensor_split is not None else None,
         "context_size": 8192 if resolved_model_path else None,
         "attack_elapsed_s": attack.time_taken,
+        "live_replay_progress_path": str(progress_path.resolve()),
         "replay_diagnostics": replay_summary,
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
