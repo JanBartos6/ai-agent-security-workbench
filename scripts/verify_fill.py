@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -44,6 +45,13 @@ def main() -> int:
     parser.add_argument("--budget-s", type=float, default=60.0)
     parser.add_argument("--gpu-layers", type=int, default=-1)
     parser.add_argument("--tensor-split", type=str, default=None)
+    parser.add_argument(
+        "--attack-config",
+        type=str,
+        default="",
+        help="Optional JSON dict merged into the attack config, e.g. "
+        "'{\"split_threshold_s\": 0.001}' to force the slow-row forge locally.",
+    )
     args = parser.parse_args()
 
     attack_path = (ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack.resolve()
@@ -63,13 +71,16 @@ def main() -> int:
         max_steps=10**9,
         max_tool_hops=8,
     )
+    attack_config: dict = (
+        json.loads(args.attack_config) if args.attack_config else {}
+    )
     kwargs: dict = {
         "budget_s": args.budget_s,
         "env_selection": EnvSelection.GYM,
         "fixtures_dir": SDK_ROOT / "aicomp_sdk" / "fixtures",
         "attack_run_config": run_config,
         # NOTE: empty config -> the attack runs its live validation-fill loop.
-        "attack_config": {},
+        "attack_config": attack_config,
     }
     if args.agent == "deterministic":
         kwargs["agent_selection"] = AgentSelection.DETERMINISTIC
