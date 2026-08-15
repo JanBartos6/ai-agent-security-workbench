@@ -34,6 +34,7 @@ never probe, keeping local replay deterministic.
 
 from __future__ import annotations
 
+import statistics
 import time
 from typing import Any
 
@@ -93,6 +94,10 @@ OVERFILL = True
 REPLAY_SAFE_SIZING = False  # legacy conservative stop (config escape hatch)
 REPLAY_SAFE_FRAC = 0.97
 REPLAY_BUDGET_MULT = 1.0
+
+TAIL_TRIM_MULT = 2.5      # drop a firing candidate if slower than this x the kept
+#                            median, so one pathological CoT candidate is replaced
+#                            by the next fast one within the same fill budget.
 
 PROBE_HOPS = 0            # 0 == probe at the grader's max_tool_hops (8)
 REPLAY_COST_COEF = 1.0    # measured elapsed x this == estimated hops=8 replay cost
@@ -239,6 +244,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             self.config.get("replay_safe_sizing", REPLAY_SAFE_SIZING)
         )
         overfill = bool(self.config.get("overfill", OVERFILL))
+        tail_trim_mult = float(self.config.get("tail_trim_mult", TAIL_TRIM_MULT))
         replay_safe_frac = float(self.config.get("replay_safe_frac", REPLAY_SAFE_FRAC))
         replay_budget = float(self.config.get("replay_budget_s", budget * REPLAY_BUDGET_MULT))
 
@@ -259,6 +265,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         wall_deadline = run_start + replay_safe_frac * budget
         replay_cost = 0.0
         kept: list[tuple[float, str]] = []  # (measured elapsed, user message)
+        kept_elapsed: list[float] = []
         idx = 0
         classify_n = 0
         classify_sum = 0.0
@@ -325,7 +332,16 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         else (gemma_frame_template if use_gemma_forge else TEMPLATE)
                     )
             if fired:
+                if (
+                    tail_trim_mult > 0
+                    and kept_elapsed
+                    and elapsed > tail_trim_mult * statistics.median(kept_elapsed)
+                ):
+                    # Pathological slow candidate: skip it and keep probing, so a
+                    # fast candidate takes its replay slot instead.
+                    continue
                 kept.append((elapsed, msg))
+                kept_elapsed.append(elapsed)
                 if replay_safe_sizing:
                     replay_cost += elapsed * replay_cost_coef
         # Fastest-first: completes the most candidates under a hard replay deadline.

@@ -179,3 +179,19 @@ only measurable on Kaggle.
 - Local fill smoke after the changes: gpt_oss 70/70 fired (45s), gemma 18/18
   fired (60s). 18/18 tests pass.
 
+## 2026-08-15 — Prompt database + slow-tail replacement
+
+- New persistent prompt database: `scripts/measure_tokens.py` now appends every
+  measured candidate to `runs/prompt-db.jsonl` and prints a cumulative
+  (model, template) median-latency ranking, so the prompt library accumulates
+  across local runs. Kaggle returns only a score, so real T4 latency can only
+  be *inferred* from throughput (score/0.09 = candidates completed =
+  8750s / latency when a submission times out) — local probing is the cheap
+  source of relative speed + fire-rate.
+- New fill knob `tail_trim_mult` (default 2.5): a firing candidate slower than
+  2.5x the kept-set median is dropped during probing so a fast candidate takes
+  its replay slot instead. Combined with fastest-first ordering and replay
+  truncation, the slow tail is replaced rather than merely deferred.
+  Local gpt_oss fill: 70 -> 66 returned (4 pathological candidates trimmed),
+  66/66 fired.
+

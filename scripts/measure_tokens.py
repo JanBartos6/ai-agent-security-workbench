@@ -28,6 +28,7 @@ import statistics
 import sys
 import time
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -256,7 +257,41 @@ def main() -> int:
     out.write_text(
         json.dumps({"summary": results, "rows": rows}, indent=2), encoding="utf-8"
     )
-    print(f"\nartifacts: {out}")
+    print(f"artifacts: {out}")
+
+    # Append to the persistent prompt database (accumulates across runs).
+    db_path = ROOT / "runs" / "prompt-db.jsonl"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with db_path.open("a", encoding="utf-8") as handle:
+        for row in rows:
+            record = dict(row)
+            record["model"] = args.agent
+            record["recorded_at_utc"] = datetime.now(timezone.utc).isoformat()
+            handle.write(json.dumps(record, separators=(",", ":")) + "\n")
+    print(f"appended {len(rows)} rows to prompt db: {db_path}")
+
+    # Cumulative ranking across every recorded run (fastest first).
+    agg: dict[tuple[str, str], dict[str, Any]] = {}
+    for line in db_path.read_text(encoding="utf-8").splitlines():
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        key = (rec.get("model"), rec.get("variant"))
+        slot = agg.setdefault(key, {"times": [], "fired": 0, "n": 0})
+        slot["times"].append(rec.get("elapsed_s"))
+        slot["n"] += 1
+        slot["fired"] += 1 if rec.get("fired") else 0
+    if agg:
+        print("\n=== prompt db ranking (median elapsed) ===")
+        for (model, variant), slot in sorted(
+            agg.items(), key=lambda kv: statistics.median(kv[1]["times"])
+        ):
+            print(
+                f"{model:<9} {variant:<12} "
+                f"{statistics.median(slot['times']):>7.2f}s "
+                f"fired {slot['fired']}/{slot['n']}"
+            )
     return 0
 
 
