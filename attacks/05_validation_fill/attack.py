@@ -82,7 +82,7 @@ HARD_N_CAP = 2000         # == SDK MAX_REPLAY_FINDINGS
 SPLIT_BY_LATENCY = True   # route the forged template to the slow (gpt_oss) row
 SPLIT_THRESHOLD_S = 12.0  # mean latency above this classifies the row as "slow"
 SPLIT_CLASSIFY_N = 8      # candidates sampled before fixing the template choice
-USE_GEMMA_FORGE = True    # apply GEMMA_FRAME_TEMPLATE on the fast (gemma) row
+USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 

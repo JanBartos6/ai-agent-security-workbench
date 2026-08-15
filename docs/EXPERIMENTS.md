@@ -157,12 +157,13 @@ only measurable on Kaggle.
      estimate (a single outlier no longer starves it) and returns candidates
      sorted ascending by measured latency; the replay deadline truncates the
      slow tail.
-  2. **gemma forge.** gemma 4 disables CoT when tools are present, so there is
-     no analysis channel to suppress; a model-turn pre-commit
-     (`<turn|>\n<|turn>model\n<|channel>thought\n<channel|>`) primes the
-     tool-call DSL instead. Measured ~24% faster (2.24s vs 2.95s median) with
-     16/16 fire, routed to the latency-classified fast row via
-     `use_gemma_forge`.
+  2. **gemma forge rechecked.** gemma 4 disables CoT when tools are present, so
+     there is no analysis channel to suppress. A model-turn pre-commit
+     (`<turn|>\n<|turn>model\n<|channel>thought\n<channel|>`) was tried as a
+     parser/latency primer, but the current prompt DB does not support keeping it
+     as the default: verbose median `2.49s`, 32 completion tokens; gemma_forge
+     median `3.04s`, 33 completion tokens; both 6/6 fire. Keep it as an optional
+     variant only.
   3. Fill deadline re-anchored to `run_start` (was computed after the warm-up
      interact), fixing a short-budget overrun that only surfaced once the
      mean-based estimate made the fill aggressive.
@@ -173,9 +174,10 @@ only measurable on Kaggle.
   - gpt_oss: verbose 126 completion tokens / 1.99s, terse 137 / 1.10s,
     forge **40 / 0.42s** — the forge cuts ~68% of generated tokens; all 6/6
     fire.
-  - gemma: verbose 32 / 2.95s, terse 55 / 3.06s, gemma_forge 33 / 2.24s —
-    no CoT; "Then answer OK only" is what keeps the wrap-up short (the terse
-    prompt without it is worse on both models).
+  - gemma: verbose 32 / 2.49s, gemma_forge 33 / 3.04s, multipost4 57 / 4.24s
+    in the current `runs/prompt-db.jsonl` snapshot — no CoT; "Then answer OK
+    only" is what keeps the wrap-up short, and the gemma pre-commit is not a
+    measured win in this snapshot.
 - Local fill smoke after the changes: gpt_oss 70/70 fired (45s), gemma 18/18
   fired (60s). 18/18 tests pass.
 
