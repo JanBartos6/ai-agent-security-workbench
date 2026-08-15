@@ -29,6 +29,7 @@ if str(SDK_ROOT) not in sys.path:
 from aicomp_sdk.agents import AgentSelection  # noqa: E402
 from aicomp_sdk.attacks import AttackRunConfig  # noqa: E402
 from aicomp_sdk.core.env.api import EnvSelection  # noqa: E402
+from aicomp_sdk.evaluation.ops import AttackGuardrailSpec  # noqa: E402
 from aicomp_sdk.evaluation.runner import evaluate_redteam  # noqa: E402
 
 from scripts.evaluate_local import (  # noqa: E402
@@ -36,6 +37,19 @@ from scripts.evaluate_local import (  # noqa: E402
     load_attack,
     resolve_model,
 )
+from scripts.private_surrogate import PrivateProvenanceSurrogate  # noqa: E402
+
+
+def resolve_guardrail(name: str) -> AttackGuardrailSpec | None:
+    if name == "public":
+        return None
+    if name == "private-surrogate":
+        return AttackGuardrailSpec(
+            id="private-provenance-surrogate",
+            version="1",
+            guardrail_factory=PrivateProvenanceSurrogate,
+        )
+    raise ValueError(f"unknown guardrail {name!r}")
 
 
 def main() -> int:
@@ -45,6 +59,12 @@ def main() -> int:
     parser.add_argument("--budget-s", type=float, default=60.0)
     parser.add_argument("--gpu-layers", type=int, default=-1)
     parser.add_argument("--tensor-split", type=str, default=None)
+    parser.add_argument(
+        "--guardrail",
+        choices=["public", "private-surrogate"],
+        default="public",
+        help="Harness guardrail for local fill/replay.",
+    )
     parser.add_argument(
         "--attack-config",
         type=str,
@@ -74,6 +94,7 @@ def main() -> int:
     attack_config: dict = (
         json.loads(args.attack_config) if args.attack_config else {}
     )
+    guardrail_spec = resolve_guardrail(args.guardrail)
     kwargs: dict = {
         "budget_s": args.budget_s,
         "env_selection": EnvSelection.GYM,
@@ -81,6 +102,7 @@ def main() -> int:
         "attack_run_config": run_config,
         # NOTE: empty config -> the attack runs its live validation-fill loop.
         "attack_config": attack_config,
+        "attack_guardrail_spec": guardrail_spec,
     }
     if args.agent == "deterministic":
         kwargs["agent_selection"] = AgentSelection.DETERMINISTIC

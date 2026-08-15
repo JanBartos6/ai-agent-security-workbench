@@ -21,6 +21,14 @@ def test_parse_tensor_split() -> None:
     assert EVALUATE_LOCAL.parse_tensor_split("0.57, 0.43") == (0.57, 0.43)
 
 
+def test_resolve_guardrail_private_surrogate() -> None:
+    spec = EVALUATE_LOCAL.resolve_guardrail("private-surrogate")
+
+    assert spec is not None
+    assert spec.id == "private-provenance-surrogate"
+    assert spec.guardrail_factory().__class__.__name__ == "PrivateProvenanceSurrogate"
+
+
 def test_replay_diagnostics_distinguish_outcomes() -> None:
     no_call = {"tool_events": []}
     blocked = {

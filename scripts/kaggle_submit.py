@@ -9,7 +9,7 @@ notebook executes and emits its output file.
 
 Usage:
     ./.venv/Scripts/python scripts/kaggle_submit.py runs/kaggle-validation-fill \
-        --submit --message "..." [--wait]
+        --submit --message "..."
 """
 
 from __future__ import annotations
@@ -76,12 +76,17 @@ def wait_until_done(api: KaggleApi, kernel: str, timeout_s: float = 60 * 30) -> 
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         status = api.kernels_status(kernel)
-        state = getattr(status, "status", None)
+        state = normalize_status(getattr(status, "status", None))
         print("kernel status:", state)
         if state in ("complete", "error"):
-            return str(state)
+            return state
         time.sleep(30)
     return "timeout"
+
+
+def normalize_status(state) -> str:
+    value = getattr(state, "value", state)
+    return str(value).split(".")[-1].lower()
 
 
 def main() -> int:
@@ -89,6 +94,7 @@ def main() -> int:
     parser.add_argument("folder")
     parser.add_argument("--submit", action="store_true")
     parser.add_argument("--wait", action="store_true")
+    parser.add_argument("--timeout-s", type=float, default=60 * 30)
     parser.add_argument("--message", default="")
     args = parser.parse_args()
 
@@ -98,8 +104,10 @@ def main() -> int:
     kernel = f"janbartos/{result['ref'].split('/')[-1]}"
     print("kernel:", kernel, "version:", result["version"])
 
-    if args.wait:
-        wait_until_done(api, kernel)
+    if args.wait or args.submit:
+        wait_state = wait_until_done(api, kernel, timeout_s=args.timeout_s)
+        if wait_state != "complete":
+            raise SystemExit(f"kernel did not complete cleanly; status={wait_state}")
 
     if args.submit:
         resp = api.competition_submit_code(

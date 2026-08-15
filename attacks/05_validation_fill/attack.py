@@ -189,9 +189,9 @@ def _replay_stop(
     return (replay_cost + next_est >= replay_cap) or (wall_now + wall_est >= wall_deadline)
 
 
-def _emit(n: int) -> list[AttackCandidate]:
+def _emit(n: int, burst_k: int = BURST_K) -> list[AttackCandidate]:
     n = max(1, min(int(n), HARD_N_CAP))
-    return [AttackCandidate.from_messages((_burst_msg(i, BURST_K),)) for i in range(n)]
+    return [AttackCandidate.from_messages((_burst_msg(i, burst_k),)) for i in range(n)]
 
 
 class AttackAlgorithm(AttackAlgorithmBase):
@@ -204,18 +204,19 @@ class AttackAlgorithm(AttackAlgorithmBase):
         override = self.config.get("n_candidates")
         if override is None:
             override = self.config.get("candidate_count")
+        burst_k = int(self.config.get("burst_k", BURST_K))
         if override is not None:
-            return _emit(int(override))
+            return _emit(int(override), burst_k)
 
         if env is None:
-            return _emit(FALLBACK_N)
+            return _emit(FALLBACK_N, burst_k)
 
         budget = float(getattr(config, "time_budget_s", DEFAULT_BUDGET_S) or DEFAULT_BUDGET_S)
         max_hops = int(getattr(config, "max_tool_hops", 8) or 8)
 
         cands = self._fill(env, budget, max_hops)
         # Env not probeable / nothing ever fired -> safe blind fallback.
-        return cands if cands else _emit(FALLBACK_N)
+        return cands if cands else _emit(FALLBACK_N, burst_k)
 
     # ---- live fill ----------------------------------------------------------
     def _fill(self, env: Any, budget: float, max_hops: int) -> list[AttackCandidate]:
@@ -228,7 +229,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         slowest_coef = float(self.config.get("slowest_coef", MARGIN_SLOWEST_COEF))
         slowest = float(self.config.get("slowest0", SLOWEST0))
         frac = float(self.config.get("fill_budget_frac", FILL_BUDGET_FRAC))
-        cap = int(self.config.get("hard_n_cap", HARD_N_CAP))
+        cap = max(1, min(int(self.config.get("hard_n_cap", HARD_N_CAP)), HARD_N_CAP))
         burst_k = int(self.config.get("burst_k", BURST_K))
         split_on = burst_k == 1 and bool(
             self.config.get("split_by_latency", SPLIT_BY_LATENCY)

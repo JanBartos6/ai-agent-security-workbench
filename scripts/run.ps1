@@ -5,6 +5,8 @@ param(
     [string]$Attack = 'attacks/00_static_marker/attack.py',
     [double]$BudgetSeconds = 30,
     [int]$CandidateCount = 32,
+    [ValidateSet('public', 'private-surrogate')]
+    [string]$Guardrail = 'public',
     [string]$ModelPath,
     [int]$GpuLayers = -1,
     [string]$TensorSplit
@@ -24,6 +26,7 @@ $Arguments = @(
     '--attack', $Attack,
     '--budget-s', $BudgetSeconds,
     '--candidate-count', $CandidateCount,
+    '--guardrail', $Guardrail,
     '--gpu-layers', $GpuLayers
 )
 if ($ModelPath) {

@@ -130,6 +130,16 @@ def test_validation_fill_override_and_fallback_within_contract() -> None:
     assert all(len(message) <= 2_000 for candidate in candidates for message in candidate.user_messages)
     assert len({candidate.user_messages for candidate in candidates}) == 4
 
+    burst_candidates = module.AttackAlgorithm({"candidate_count": 2, "burst_k": 2}).run(
+        object(), AttackRunConfig(time_budget_s=1)
+    )
+    assert len(burst_candidates) == 2
+    assert all(
+        "Call http.post 2 times" in candidate.user_messages[0]
+        for candidate in burst_candidates
+    )
+    assert len(module._emit(MAX_REPLAY_FINDINGS + 10)) == MAX_REPLAY_FINDINGS
+
     # Unprobeable env -> safe blind fallback (FALLBACK_N < MAX_REPLAY_FINDINGS).
     fallback = module.AttackAlgorithm({}).run(
         object(), AttackRunConfig(time_budget_s=1)

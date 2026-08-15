@@ -35,6 +35,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SDK_ROOT = ROOT / "ai-agent-security-multi-step-tool-attacks"
 sys.dont_write_bytecode = True
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(SDK_ROOT) not in sys.path:
     sys.path.insert(0, str(SDK_ROOT))
 
@@ -45,6 +47,11 @@ from aicomp_sdk.evaluation.ops import (  # noqa: E402
     resolve_fixtures_dir,
 )
 from aicomp_sdk.guardrails.optimal import Guardrail as OptimalGuardrail  # noqa: E402
+from scripts.private_surrogate import (  # noqa: E402
+    PrivateProvenanceSurrogate,
+    assess_private_transfer,
+    summarize_tool_events,
+)
 
 MODEL_CONFIG = {
     "gpt_oss": {
@@ -147,6 +154,12 @@ def main() -> int:
     parser.add_argument("--variants", default="verbose,terse,forge")
     parser.add_argument("--gpu-layers", type=int, default=-1)
     parser.add_argument("--tensor-split", type=parse_tensor_split)
+    parser.add_argument(
+        "--guardrail",
+        choices=["public", "private-surrogate"],
+        default="public",
+        help="Guardrail used for the local interaction. Public matches Kaggle public.",
+    )
     args = parser.parse_args()
 
     variant_names = [v.strip() for v in args.variants.split(",") if v.strip()]
@@ -176,11 +189,16 @@ def main() -> int:
     fixtures_dir = resolve_fixtures_dir(SDK_ROOT / "aicomp_sdk" / "fixtures")
 
     print(f"loading {args.agent} ({model_path.name}, gpu_layers={args.gpu_layers})")
+    guardrail = (
+        PrivateProvenanceSurrogate()
+        if args.guardrail == "private-surrogate"
+        else OptimalGuardrail()
+    )
     env = build_attack_env(
         seed=123,
         fixtures_dir=fixtures_dir,
         agent_factory=factory,
-        guardrail=OptimalGuardrail(),
+        guardrail=guardrail,
         env_selection=EnvSelection.GYM,
         max_tool_hops=8,
     )
@@ -227,26 +245,36 @@ def main() -> int:
         try:
             env.reset()
             env.interact(msg, max_tool_hops=8)
+            trace = env.export_trace_dict()
             posts = posts_fired(env)
-            exfil = any(
-                p.get("predicate") == "EXFILTRATION"
-                for p in eval_predicates(env.export_trace_dict())
-            )
+            predicates = eval_predicates(trace)
+            exfil = any(p.get("predicate") == "EXFILTRATION" for p in predicates)
+            tool_events = summarize_tool_events(trace.get("tool_events") or [])
             error = None
         except Exception as err:  # noqa: BLE001
             posts = 0
             exfil = False
+            predicates = []
+            tool_events = []
             error = f"{type(err).__name__}: {err}"
         elapsed = time.perf_counter() - t0
         calls = records[start:]
-        return {
+        successful_tool_calls = sum(1 for event in tool_events if event.get("ok"))
+        row = {
             "variant": variant,
             "index": i,
+            "message": msg,
+            "guardrail": args.guardrail,
             "elapsed_s": elapsed,
             "posts": posts,
             "exfil": exfil,
             "fired": exfil,
             "error": error,
+            "predicates": predicates,
+            "tool_events": tool_events,
+            "tool_calls": len(tool_events),
+            "successful_tool_calls": successful_tool_calls,
+            "failed_tool_calls": len(tool_events) - successful_tool_calls,
             "generations": len(calls),
             "prompt_tokens": sum((c.get("prompt_tokens") or 0) for c in calls),
             "completion_tokens": sum((c.get("completion_tokens") or 0) for c in calls),
@@ -259,6 +287,8 @@ def main() -> int:
                 for c in calls
             ],
         }
+        row["private_surrogate"] = assess_private_transfer(row)
+        return row
 
     # Warm the model (KV cache, CUDA context, first-token latency) and discard.
     run_one(variant_names[0], 0)
@@ -285,6 +315,10 @@ def main() -> int:
                 x["completion_tokens"] for x in r
             ),
             "mean_generations": statistics.mean(x["generations"] for x in r),
+            "mean_tool_calls": statistics.mean(x["tool_calls"] for x in r),
+            "mean_private_survival_prior": statistics.mean(
+                x["private_surrogate"]["survival_prior"] for x in r
+            ),
         }
         rows.extend(r)
 

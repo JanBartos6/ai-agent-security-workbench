@@ -21,6 +21,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 SDK_ROOT = ROOT / "ai-agent-security-multi-step-tool-attacks"
 sys.dont_write_bytecode = True
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(SDK_ROOT) not in sys.path:
     sys.path.insert(0, str(SDK_ROOT))
 
@@ -30,8 +32,10 @@ from aicomp_sdk.core.cells import cell_signature  # noqa: E402
 from aicomp_sdk.core.env.api import EnvSelection  # noqa: E402
 from aicomp_sdk.core.predicates import eval_predicates  # noqa: E402
 from aicomp_sdk.evaluation import ops as evaluation_ops  # noqa: E402
+from aicomp_sdk.evaluation.ops import AttackGuardrailSpec  # noqa: E402
 from aicomp_sdk.evaluation.reports import ReportProfile, build_evaluation_report  # noqa: E402
 from aicomp_sdk.evaluation.runner import evaluate_redteam  # noqa: E402
+from scripts.private_surrogate import PrivateProvenanceSurrogate  # noqa: E402
 
 
 MODEL_CONFIG = {
@@ -179,6 +183,18 @@ def configure_model_server(
     model_server._server._llama_cls = SplitConfiguredLlama
 
 
+def resolve_guardrail(name: str) -> AttackGuardrailSpec | None:
+    if name == "public":
+        return None
+    if name == "private-surrogate":
+        return AttackGuardrailSpec(
+            id="private-provenance-surrogate",
+            version="1",
+            guardrail_factory=PrivateProvenanceSurrogate,
+        )
+    raise ValueError(f"unknown guardrail {name!r}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Replay an attack with the vendored scorer.")
     parser.add_argument("--attack", type=Path, default=Path("attacks/00_static_marker/attack.py"))
@@ -186,6 +202,12 @@ def main() -> int:
     parser.add_argument("--model-path", type=Path)
     parser.add_argument("--budget-s", type=float, default=30.0)
     parser.add_argument("--candidate-count", type=int, default=32)
+    parser.add_argument(
+        "--guardrail",
+        choices=["public", "private-surrogate"],
+        default="public",
+        help="Harness guardrail for local replay. Public matches the packaged scorer.",
+    )
     parser.add_argument(
         "--gpu-layers",
         type=int,
@@ -215,6 +237,7 @@ def main() -> int:
     progress_path.touch(exist_ok=False)
     print(f"live replay progress: {progress_path}", flush=True)
     factory, label, model_server, resolved_model_path = resolve_model(args.agent, args.model_path)
+    guardrail_spec = resolve_guardrail(args.guardrail)
     if model_server is not None:
         configure_model_server(
             model_server,
@@ -267,6 +290,7 @@ def main() -> int:
                     fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
                     attack_run_config=run_config,
                     attack_config={"candidate_count": args.candidate_count},
+                    attack_guardrail_spec=guardrail_spec,
                 )
             else:
                 execution = evaluate_redteam(
@@ -278,6 +302,7 @@ def main() -> int:
                     fixtures_dir=SDK_ROOT / "aicomp_sdk" / "fixtures",
                     attack_run_config=run_config,
                     attack_config={"candidate_count": args.candidate_count},
+                    attack_guardrail_spec=guardrail_spec,
                 )
     finally:
         if model_server is not None:
@@ -302,6 +327,7 @@ def main() -> int:
         "attack_sha256": file_sha256(attack_path),
         "sdk_tree_lock": json.loads((ROOT / "sdk-integrity.lock.json").read_text(encoding="utf-8")),
         "candidate_count_requested": args.candidate_count,
+        "guardrail": args.guardrail,
         "max_tool_hops": run_config.max_tool_hops,
         "predicate_counts": dict(sorted(predicate_counts.items())),
         "model_path": str(resolved_model_path.resolve()) if resolved_model_path else None,

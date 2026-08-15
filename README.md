@@ -48,6 +48,20 @@ After a completed local run, compare candidate families and project their score 
 .venv/Scripts/python.exe scripts/analyze_run.py runs/<run-id> --group-by requested_calls style
 ```
 
+For prompt-level throughput and private-transfer triage, use the token database
+and stricter surrogate guardrail:
+
+```powershell
+.venv/Scripts/python.exe scripts/cost_model.py --rank-by public
+.venv/Scripts/python.exe scripts/cost_model.py --rank-by private
+.venv/Scripts/python.exe scripts/run.ps1 -Agent deterministic -Attack attacks/05_validation_fill/attack.py -CandidateCount 2 -Guardrail private-surrogate
+```
+
+The private-surrogate path is a pessimistic local stress test, not hidden
+leaderboard evidence. It is meant to keep public-code loophole dependence visible
+while ranking prompt families by estimated prefill, decode, generation, and tool
+cost.
+
 ## Repository map
 
 - `attacks/` — one self-contained `attack.py` per experiment.
