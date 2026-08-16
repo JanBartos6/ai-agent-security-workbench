@@ -86,6 +86,16 @@ def wait_until_done(api: KaggleApi, kernel: str, timeout_s: float = 60 * 30) -> 
 
 def normalize_status(state) -> str:
     value = getattr(state, "value", state)
+    if isinstance(value, int):
+        return {
+            0: "queued",
+            1: "running",
+            2: "complete",
+            3: "error",
+            4: "cancel_requested",
+            5: "cancel_acknowledged",
+            6: "new_script",
+        }.get(value, str(value))
     return str(value).split(".")[-1].lower()
 
 
