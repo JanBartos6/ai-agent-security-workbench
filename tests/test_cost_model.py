@@ -102,3 +102,20 @@ def test_private_prediction_discounts_literal_marker_records() -> None:
     assert rows[0]["predicted_score"] == pytest.approx(180.0)
     assert rows[0]["private_survival"] == pytest.approx(0.20)
     assert rows[0]["private_predicted_score"] == pytest.approx(36.0)
+
+
+def test_load_db_preserves_zero_successful_tool_calls(tmp_path, monkeypatch) -> None:
+    module = _load_cost_model()
+    db = tmp_path / "prompt-db.jsonl"
+    db.write_text(
+        '{"model":"gpt_oss","variant":"blocked","prompt_tokens":1,'
+        '"completion_tokens":1,"generations":1,"tool_calls":1,'
+        '"successful_tool_calls":0,"posts":1,"fired":false}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "DB", db)
+
+    loaded = module.load_db()
+
+    assert loaded[("gpt_oss", "blocked")]["tool_calls"] == [1]
+    assert loaded[("gpt_oss", "blocked")]["successful_tool_calls"] == [0]

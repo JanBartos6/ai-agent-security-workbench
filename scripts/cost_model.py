@@ -67,6 +67,15 @@ DEFAULTS = {
 from scripts.private_surrogate import infer_private_survival_prior  # noqa: E402
 
 
+def _first_present_number(record: dict[str, Any], *keys: str, default: float = 0) -> Any:
+    """Return the first non-None numeric-ish field without treating 0 as missing."""
+    for key in keys:
+        value = record.get(key)
+        if value is not None:
+            return value
+    return default
+
+
 def load_db() -> dict[tuple[str, str], dict[str, Any]]:
     agg: dict[tuple[str, str], dict[str, Any]] = {}
     if not DB.is_file():
@@ -94,9 +103,9 @@ def load_db() -> dict[tuple[str, str], dict[str, Any]]:
         slot["prompt"].append(rec.get("prompt_tokens") or 0)
         slot["completion"].append(rec.get("completion_tokens") or 0)
         slot["generations"].append(rec.get("generations") or 0)
-        slot["tool_calls"].append(rec.get("tool_calls") or rec.get("posts") or 0)
+        slot["tool_calls"].append(_first_present_number(rec, "tool_calls", "posts"))
         slot["successful_tool_calls"].append(
-            rec.get("successful_tool_calls") or rec.get("posts") or 0
+            _first_present_number(rec, "successful_tool_calls", "posts")
         )
         slot["n"] += 1
         slot["fired"] += 1 if rec.get("fired") else 0
