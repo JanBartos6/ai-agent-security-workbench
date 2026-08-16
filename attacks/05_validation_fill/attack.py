@@ -99,7 +99,10 @@ TAIL_TRIM_MULT = 2.5      # drop a firing candidate if slower than this x the ke
 #                            median, so one pathological CoT candidate is replaced
 #                            by the next fast one within the same fill budget.
 
-PROBE_HOPS = 0            # 0 == probe at the grader's max_tool_hops (8)
+# A single successful http.post is enough to prove this candidate will score.
+# Replaying still uses the grader's max_tool_hops; this only cuts validation-fill
+# time by avoiding the post-tool wrap-up generation during probing.
+PROBE_HOPS = 1
 REPLAY_COST_COEF = 1.0    # measured elapsed x this == estimated hops=8 replay cost
 
 SLOW_MULTIPOST_N = 1      # forged multi-post endpoints on the slow row (R4, off)
