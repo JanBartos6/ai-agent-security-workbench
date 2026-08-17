@@ -92,6 +92,7 @@ REPLAY_SAFE_FRAC = 0.97
 REPLAY_BUDGET_MULT = 1.0
 
 TAIL_TRIM_MULT = 0.0      # generic elapsed trim; disabled
+K1_TAIL_TRIM_MULT = 1.30  # trim K1 candidates > this x median K1 time
 K8_TAIL_TRIM_MULT = 1.30  # trim full-K8 candidates > this x median full-K8 time
 PAD_UNTESTED_TAIL = True  # append unprobed candidates after the validated prefix
 UNTESTED_TAIL_TARGET_N = HARD_N_CAP
@@ -332,6 +333,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
         )
         overfill = bool(self.config.get("overfill", OVERFILL))
         tail_trim_mult = float(self.config.get("tail_trim_mult", TAIL_TRIM_MULT))
+        k1_tail_trim_mult = float(
+            self.config.get("k1_tail_trim_mult", K1_TAIL_TRIM_MULT)
+        )
         k8_tail_trim_mult = float(
             self.config.get("k8_tail_trim_mult", K8_TAIL_TRIM_MULT)
         )
@@ -367,6 +371,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         kept_elapsed: list[float] = []
         kept_messages: set[str] = set()
         rejected_messages: set[str] = set()
+        kept_k1_elapsed: list[float] = []
         kept_k8_elapsed: list[float] = []
         idx = 0
         classify_n = 0
@@ -443,6 +448,17 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     )
             if fired:
                 if (
+                    not multipost_probe
+                    and k1_tail_trim_mult > 0
+                    and kept_k1_elapsed
+                    and elapsed > k1_tail_trim_mult * statistics.median(kept_k1_elapsed)
+                ):
+                    # K1 row/candidate tail trim.  Keep this median separate
+                    # from K8: K1 and K8 have different expected latencies and
+                    # score shapes, so mixing them would trim the wrong thing.
+                    rejected_messages.add(msg)
+                    continue
+                if (
                     multipost_probe
                     and k8_tail_trim_mult > 0
                     and kept_k8_elapsed
@@ -467,6 +483,8 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 kept_messages.add(msg)
                 if multipost_probe:
                     kept_k8_elapsed.append(elapsed)
+                else:
+                    kept_k1_elapsed.append(elapsed)
                 if replay_safe_sizing:
                     replay_cost += elapsed * replay_cost_coef
             else:
