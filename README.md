@@ -14,7 +14,7 @@ The downloaded competition directory is deliberately treated as an immutable ext
 - Two-thousand-candidate replay-density baseline included at `attacks/02_scaled_baseline/attack.py`.
 - Balanced 200-candidate call-multiplicity sweep included at `attacks/03_multiplicity_sweep/attack.py`.
 - Sixty-candidate Kaggle-harness control included at `attacks/04_kaggle_60_control/attack.py`; verified 60/60 scored locally on both GPT-OSS (full offload) and Gemma (24/30 layers).
-- Validation-fill + replay-safe sizing + latency-split forge included at `attacks/05_validation_fill/attack.py` (port of the proven ~84-89 public architecture); now also overfill, fastest-first ordering, and optional prompt-cost/private-surrogate tooling. Live-fill loop verified via `scripts/verify_fill.py`; per-candidate token/latency measurement via `scripts/measure_tokens.py`.
+- Validation-fill + replay-safe sizing + latency-split forge included at `attacks/05_validation_fill/attack.py` (port of the proven ~84-89 public architecture). The default path is intentionally back on the proven single-post replay-safe behavior after hosted regressions: branch06 overfill/tail-trim scored 83.745 public and the K8 slow-row multipost default scored 65.070, versus 86.805 for the replay-safe R3 artifact. Experimental overfill/K variants remain config-gated. Live-fill loop verification uses `scripts/verify_fill.py`; per-candidate token/latency measurement uses `scripts/measure_tokens.py`.
 - Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
 
 ## Quick start on Windows
