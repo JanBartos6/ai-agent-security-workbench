@@ -12,7 +12,9 @@ competition.  Three mechanisms, one deadline-aware loop:
 2.  Replay-safe sizing.  The grader re-replays the returned list in a FRESH
     per-model budget.  The deployed gateway preserves partial score on replay
     timeout, but the last proven public submission used conservative sizing.
-    Overfill/fastest-first remain available by config, not by default.
+    Overfill/fastest-first remain available by config, not by default.  After
+    the validated prefix, we append cheap untested same-template candidates to
+    the replay cap so the replay phase never runs out of work.
 3.  Latency-split forge (speed).  run() never learns which model it is talking to
     (gpt_oss ~20.4s/cand vs gemma ~8.5s/cand on a T4); the only signal is
     observed latency.  We sample N candidates, measure, and if the model is
@@ -94,6 +96,8 @@ REPLAY_SAFE_FRAC = 0.97
 REPLAY_BUDGET_MULT = 1.0
 
 TAIL_TRIM_MULT = 0.0      # experimental; disabled in the proven default path
+PAD_UNTESTED_TAIL = True  # append unprobed candidates after the validated prefix
+UNTESTED_TAIL_TARGET_N = HARD_N_CAP
 
 PROBE_HOPS = 0            # 0 == probe at the grader's max_tool_hops (8)
 REPLAY_COST_COEF = 1.0    # measured elapsed x this == estimated hops=8 replay cost
@@ -242,6 +246,12 @@ class AttackAlgorithm(AttackAlgorithmBase):
         )
         overfill = bool(self.config.get("overfill", OVERFILL))
         tail_trim_mult = float(self.config.get("tail_trim_mult", TAIL_TRIM_MULT))
+        pad_untested_tail = bool(
+            self.config.get("pad_untested_tail", PAD_UNTESTED_TAIL)
+        )
+        untested_tail_target = int(
+            self.config.get("untested_tail_target_n", UNTESTED_TAIL_TARGET_N)
+        )
         replay_safe_frac = float(self.config.get("replay_safe_frac", REPLAY_SAFE_FRAC))
         replay_budget = float(self.config.get("replay_budget_s", budget * REPLAY_BUDGET_MULT))
 
@@ -271,6 +281,17 @@ class AttackAlgorithm(AttackAlgorithmBase):
         elapsed_sum = 0.0
         elapsed_count = 0
         chosen_template = TEMPLATE
+
+        def build_message(candidate_idx: int, *, classifying: bool = False) -> tuple[str, bool]:
+            """Return (message, needs_full_multipost_probe)."""
+            if burst_k != 1:
+                return _burst_msg(candidate_idx, burst_k), False
+            slow_row = split_on and not classifying and chosen_template == frame_template
+            if slow_row and slow_multipost_n > 1:
+                return _forge_plan_msg(candidate_idx, slow_multipost_n), True
+            template = TEMPLATE if (not split_on or classifying) else chosen_template
+            return _msg(candidate_idx, template), False
+
         while len(kept) < cap:
             if overfill:
                 # Mean-based estimate (not max): a single outlier must not starve
@@ -299,20 +320,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     break
 
             classifying = split_on and classify_n < split_classify_n
-            multipost_probe = False
-            if burst_k == 1:
-                slow_row = split_on and not classifying and chosen_template == frame_template
-                if slow_row and slow_multipost_n > 1:
-                    msg = _forge_plan_msg(idx, slow_multipost_n)
-                    # Multi-post validation must exercise every allowed hop;
-                    # a one-hop probe only proves the first post and badly
-                    # underestimates replay cost.
-                    multipost_probe = True
-                else:
-                    template = TEMPLATE if (not split_on or classifying) else chosen_template
-                    msg = _msg(idx, template)
-            else:
-                msg = _burst_msg(idx, burst_k)
+            msg, multipost_probe = build_message(idx, classifying=classifying)
             idx += 1
             t0 = time.monotonic()
             try:
@@ -357,6 +365,20 @@ class AttackAlgorithm(AttackAlgorithmBase):
         # default replay-safe path preserves the proven chronological order.
         if overfill:
             kept.sort(key=lambda pair: pair[0])
+
+        # A conservative validation loop can stop before the replay phase would
+        # exhaust its own budget.  Untested candidates are cheap to create and
+        # harmless when placed after the validated prefix: replay consumes them
+        # only if it would otherwise run out of work.  Use the same row-selected
+        # template as the validated candidates and keep labels globally unique by
+        # continuing from the next unused candidate index.
+        if pad_untested_tail and kept:
+            target = max(len(kept), min(cap, int(untested_tail_target)))
+            while len(kept) < target:
+                msg, _ = build_message(idx, classifying=False)
+                idx += 1
+                kept.append((float("inf"), msg))
+
         return [AttackCandidate.from_messages((msg,)) for _, msg in kept]
 
     @staticmethod

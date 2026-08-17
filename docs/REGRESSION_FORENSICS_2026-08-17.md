@@ -41,7 +41,7 @@ That means any strategy whose benefit depends on post-hoc sorting/filtering must
 
 ## Current diagnosis
 
-Branch06 is a small hosted regression. The most plausible cause is that overfill/tail-trim/fastest-first did not transfer to the hosted replay economics and/or occasionally bypassed the intended returned ordering/filtering at generation timeout boundaries. The public drop is about `34` single-post-equivalent candidates on average: `(86.805 - 83.745) / 0.09`.
+Branch06 is a small hosted regression. The most plausible cause is budget accounting: it disabled replay-safe sizing and used the overfill stop rule with `FILL_BUDGET_FRAC=0.95` while still probing at the full grader hop cap (`PROBE_HOPS=0`). The proven R3 path used `REPLAY_SAFE_FRAC=0.97`; the two-point fraction difference is `175s` on an 8,750s row, which is enough to explain most of the observed drop. Tail-trim/fastest-first may also have changed the returned candidate distribution, but URL shortening was not the cause. The public drop is about `34` single-post-equivalent candidates on average: `(86.805 - 83.745) / 0.09`.
 
 K8 is a large hosted regression. The submitted code validated K8 candidates by running full 8-hop interactions during the fill phase and rejecting any local probe with fewer than 8 marker posts. Local replay raw/s was not the same objective as hosted validation-fill throughput. The public drop versus R3 is about `242` single-post-equivalent candidates on average: `(86.805 - 65.070) / 0.09`.
 
@@ -57,6 +57,7 @@ K8 is a large hosted regression. The submitted code validated K8 candidates by r
 - GPT `FRAME_TEMPLATE` restored to `http.post url={url} data={payload}` plus Harmony analysis-close tokens
 - default URL labels restored to R3's `aa..zz`, then numeric suffix scheme
 - fastest-first sorting now runs only when explicit `overfill` config is enabled
+- an untested same-template tail is appended after the validated prefix up to the 2,000 replay cap, so conservative validation does not cause replay to run out of candidates
 
 The file is not byte-identical to R3 because experimental config hooks remain, but default constants and generated single-post messages were verified against the 86.805 artifact.
 
