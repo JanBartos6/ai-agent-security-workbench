@@ -8,12 +8,13 @@ Exact one-message, public-SDK Gemma K8 is locally achieved and now partially com
 
 First verified prompt: `k8_gen8_suffix_no_json_at_eight_selected` in `docs/gemma_k8_luna/round30c_no_json_selected.jsonl`.
 
-Current best compressed prompt: `k8_micro_short_instruction_nojson_data_selected` in `docs/gemma_k8_luna/round33b_short_instruction_nojson_data_selected.jsonl`.
+Current lowest-token compressed prompt: `k8_r35_nj_data_selected` in `docs/gemma_k8_luna/round35d_nj_data_selected.jsonl`.
 
 Verification runs:
 
 - first K8: `runs/gemma_k8_luna/round30c_no_json_selected_40.json`
 - compressed K8: `runs/gemma_k8_luna/round33b_short_instruction_nojson_data_selected_40.json`
+- lowest-token K8: `runs/gemma_k8_luna/round35d_nj_data_selected_warm_40_aggregated.json`
 
 Observed distribution:
 
@@ -23,8 +24,9 @@ Observed distribution:
 - estimated raw score: `{130: 40}`
 - errors: `{None: 40}`
 - all tool events were `http.post`, `ok=True`
-- current best median elapsed: 17.937s
-- current best median prompt/completion/total tokens: 10824 / 302 / 11126
+- best same-process 40-row median elapsed: 17.937s
+- best same-process 40-row median prompt/completion/total tokens: 10824 / 302 / 11126
+- lowest-token 40-row median prompt/completion/total tokens: 10766 / 289 / 11055
 
 This passes the original behavioral gate of `>=39/40` exact K8 samples. It is still a local public-SDK result, not a hosted Kaggle leaderboard verification or an economic optimization result.
 
@@ -34,9 +36,12 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 | --- | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | K8 first verified | 40 | `{8: 40}` | `{130: 40}` | 5200 | 920.792s | 5.647 | 5.648 | 22.973s | 11651 / 407 |
 | K8 compressed | 40 | `{8: 40}` | `{130: 40}` | 5200 | 717.891s | 7.243 | 7.244 | 17.937s | 10824 / 302 |
+| K8 lowest-token (`__NJ_data`) | 40 | `{8: 40}` | `{130: 40}` | 5200 | 755.550s | 6.882 | 6.883 | 18.887s | 10766 / 289 |
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
-On this local run, the compressed K8 has 93.5% of the K1 aggregate raw/s, i.e. 6.5% lower raw/s. The first verified K8 had only 72.9% of K1 aggregate raw/s, so completion/static prompt compression improved K8 aggregate raw/s by 28.3%.
+On this local run, the same-process compressed K8 has 93.5% of the K1 aggregate raw/s, i.e. 6.5% lower raw/s. The first verified K8 had only 72.9% of K1 aggregate raw/s, so completion/static prompt compression improved K8 aggregate raw/s by 28.3%.
+
+The Round 35 `__NJ_data` result is lower-token but not a fair same-process raw/s comparison: same-process repeat mode crashed in this local session before row output, so the 40-row measurement was aggregated from 40 separate warmup-normal one-row lab invocations. The row-level `elapsed_s` field still excludes model load and warmup, but the run modality is different enough that the raw/s number should be treated as provisional. The token result is clear: median completion tokens dropped from 302 to 289 and total tokens from 11126 to 11055 while preserving 40/40 K8 under the warmup-normal one-row condition.
 
 The mechanism that finally crossed K7 was not a longer prose explanation. It was a compact lexical anchor inside the repeated native call's `data` value. The first verified K8 used:
 
@@ -48,6 +53,12 @@ The compressed prompt preserved K8 with the shorter:
 
 ```text
 __NO_JSON_data
+```
+
+Round 35 then preserved K8 with an even shorter carried value:
+
+```text
+__NJ_data
 ```
 
 The prompt still uses the two-phase native-call recipe:
@@ -78,6 +89,8 @@ Do not submit this blindly as a production default until its throughput tradeoff
 - Round 31 measured the matched K1 baseline: 40/40 K1, aggregate 7.747 raw/s versus Round 30c K8 aggregate 5.647 raw/s.
 - Round 32 compressed the carried value to `__NO_JSON_data`: selected 40/40 K8, 302 completion tokens, aggregate 7.155 raw/s.
 - Round 33 shortened the surrounding instruction while keeping `__NO_JSON_data`: selected 40/40 K8, aggregate 7.243 raw/s, now 6.5% below the local K1 baseline instead of 27.1% below.
+- Round 34 tested shorter surrounding instructions, prompt-side precommit to omit the thought prefix, lowercase/stem anchors, short URL changes, and bare-native shorter calls. Bare-native saved tokens on the first generation but failed K8; the prompt-side precommit reached only K6. The reliable path still requires the longer native special-quote call plus the thought-prefix surface.
+- Round 35 swept shorter carried anchors. `__NOJDATA` looked promising in the mixed screen but failed as K7 when isolated. `__NJ_data` reproduced in isolated warmup-normal runs and aggregated 40/40 K8 with median prompt/completion/total tokens 10766 / 289 / 11055. No-warmup dropped to K6, so this candidate should be treated as warmup/order-sensitive until validated in the real candidate-bank replay order.
 
 ## Commands
 
