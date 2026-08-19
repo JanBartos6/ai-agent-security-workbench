@@ -105,6 +105,12 @@ def main() -> int:
     for start in range(0, len(chunks), 8):
         print("    " + ", ".join(chunks[start : start + 8]) + ",")
     print(")")
+    print("K8_BANK_CODE_CSV = (")
+    code_chunks = [f"{item['code']}:{item['index']}" for item in items]
+    for start in range(0, len(code_chunks), 40):
+        prefix = "" if start == 0 else ","
+        print('    "' + prefix + ",".join(code_chunks[start : start + 40]) + '"')
+    print(")")
 
     if args.out_json is not None:
         out_json = (ROOT / args.out_json).resolve() if not args.out_json.is_absolute() else args.out_json
