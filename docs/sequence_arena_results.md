@@ -66,3 +66,34 @@ Interpretation: under matched duplicate-cache topology, GPT K8 remains about
 36% denser than the best duplicate K1 control (`63.391 / 46.638 = 1.36`). The
 K8 advantage is therefore not explained away by comparing duplicate K8 against
 unique K1; K8 batching itself is still locally economical.
+
+### Candidate-cold duplicate K8 versus duplicate K1
+
+Artifact: `runs/tmp/sequence-arena-gpt-duplicate-k8-vs-k1-candidate-cold-n20.json`
+
+Command shape:
+
+```powershell
+$env:AICOMP_SDK_ROOT='G:\kaggle_competition\ai-agent-security-multi-step-tool-attacks'
+& 'G:\kaggle_competition\.venv\Scripts\python.exe' scripts\profile_sequence_arena.py `
+  --agent gpt_oss `
+  --model-path G:\kaggle_competition\models\gpt-oss-20b-Q4_K_M.gguf `
+  --gpu-layers -1 `
+  --tensor-split 0.57,0.43 `
+  --n 20 `
+  --candidate-cold `
+  --order grouped `
+  --arms slot_duplicate,k1_forge_duplicate `
+  --out runs\tmp\sequence-arena-gpt-duplicate-k8-vs-k1-candidate-cold-n20.json
+```
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | p90 s | Median eval tokens | Median prefix-match tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate` | 20 × 8 | 1 | 2562 | 58.087 | 2.202 | 2.228 | 1486 | 7483 |
+| `k1_forge_duplicate` | 20 × 1 | 1 | 322 | 25.470 | 0.629 | 0.648 | 936 | 840 |
+
+Interpretation: even when llama state is reset before every candidate, duplicate
+K8 remains about 2.28× denser than forged duplicate K1. Cross-candidate prefix
+reuse helps the normal duplicate bank, but it is not required for K8 to beat K1
+locally. The structural win is that K8 spends eight model generations on eight
+scoring posts, while K1 pays a prompt/finalization tax for only one scoring post.
