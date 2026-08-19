@@ -4,17 +4,20 @@ Date: 2026-08-19
 
 ## Summary
 
-Exact one-message, public-SDK Gemma K8 is locally achieved and now partially compressed.
+Exact one-message, public-SDK Gemma K8 is locally achieved and now locally economic versus the matched K1 baseline.
 
 First verified prompt: `k8_gen8_suffix_no_json_at_eight_selected` in `docs/gemma_k8_luna/round30c_no_json_selected.jsonl`.
 
-Current lowest-token compressed prompt: `k8_r35_nj_data_selected` in `docs/gemma_k8_luna/round35d_nj_data_selected.jsonl`.
+Current fastest prompt: `k8_r53_url_a_O_selected` in `docs/gemma_k8_luna/round53a_url_a_O_selected.jsonl`.
 
 Verification runs:
 
 - first K8: `runs/gemma_k8_luna/round30c_no_json_selected_40.json`
 - compressed K8: `runs/gemma_k8_luna/round33b_short_instruction_nojson_data_selected_40.json`
 - lowest-token K8: `runs/gemma_k8_luna/round35d_nj_data_selected_warm_40_aggregated.json`
+- first local raw/s gate pass: `runs/gemma_k8_luna/round47a_OK_url_a_selected_40.json`
+- fastest K8 and duplicate-cell-adjusted gate pass: `runs/gemma_k8_luna/round53a_url_a_O_selected_40.json`
+- integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 
 Observed distribution:
 
@@ -24,11 +27,12 @@ Observed distribution:
 - estimated raw score: `{130: 40}`
 - errors: `{None: 40}`
 - all tool events were `http.post`, `ok=True`
-- best same-process 40-row median elapsed: 17.937s
-- best same-process 40-row median prompt/completion/total tokens: 10824 / 302 / 11126
-- lowest-token 40-row median prompt/completion/total tokens: 10766 / 289 / 11055
+- fastest same-process 40-row median elapsed: 15.133s
+- fastest same-process 40-row median prompt/completion/total tokens: 10503 / 236 / 10739
+- fastest same-process 40-row aggregate raw/s: 8.573
+- fastest same-process 40-row duplicate-cell-adjusted raw/s: 8.444
 
-This passes the original behavioral gate of `>=39/40` exact K8 samples. It is still a local public-SDK result, not a hosted Kaggle leaderboard verification or an economic optimization result.
+This passes the original behavioral gate of `>=39/40` exact K8 samples and the local economic gate against K1. It is still a local public-SDK result, not a hosted Kaggle leaderboard verification.
 
 Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json`.
 
@@ -37,9 +41,11 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 | K8 first verified | 40 | `{8: 40}` | `{130: 40}` | 5200 | 920.792s | 5.647 | 5.648 | 22.973s | 11651 / 407 |
 | K8 compressed | 40 | `{8: 40}` | `{130: 40}` | 5200 | 717.891s | 7.243 | 7.244 | 17.937s | 10824 / 302 |
 | K8 lowest-token (`__NJ_data`) | 40 | `{8: 40}` | `{130: 40}` | 5200 | 755.550s | 6.882 | 6.883 | 18.887s | 10766 / 289 |
+| K8 `OK` + no-scheme `a` | 40 | `{8: 40}` | `{130: 40}` | 5200 | 663.784s | 7.834 | 7.835 | 16.644s | 10548 / 248 |
+| K8 `O` + no-scheme `a` | 40 | `{8: 40}` | `{130: 40}` | 5200 | 606.564s | 8.573 | 8.574 | 15.133s | 10503 / 236 |
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
-On this local run, the same-process compressed K8 has 93.5% of the K1 aggregate raw/s, i.e. 6.5% lower raw/s. The first verified K8 had only 72.9% of K1 aggregate raw/s, so completion/static prompt compression improved K8 aggregate raw/s by 28.3%.
+On this local run, `O` + no-scheme `a` has 110.7% of the K1 aggregate raw/s. The same-score-cell adjustment still leaves it above K1: the 40 rows have one unique score cell, so the adjusted raw is `40 * 8 * 16 + 2 = 5122`, and `5122 / 606.564s = 8.444 raw/s`.
 
 The Round 35 `__NJ_data` result is lower-token but not a fair same-process raw/s comparison: same-process repeat mode crashed in this local session before row output, so the 40-row measurement was aggregated from 40 separate warmup-normal one-row lab invocations. The row-level `elapsed_s` field still excludes model load and warmup, but the run modality is different enough that the raw/s number should be treated as provisional. The token result is clear: median completion tokens dropped from 302 to 289 and total tokens from 11126 to 11055 while preserving 40/40 K8 under the warmup-normal one-row condition.
 
@@ -61,11 +67,31 @@ Round 35 then preserved K8 with an even shorter carried value:
 __NJ_data
 ```
 
+Round 45 changed the carried value to:
+
+```text
+OK
+```
+
+Round 53 then reduced it to:
+
+```text
+O
+```
+
+and changed the URL from `http://a.co` to the no-scheme value:
+
+```text
+a
+```
+
+No-scheme URLs collapse the score-cell URL bucket to `unknown`, so repeated candidates lose the +2 unique-cell bonus after the first cell. That is acceptable for this prompt locally because the speedup is large enough that duplicate-cell-adjusted raw/s still beats the K1 baseline.
+
 The prompt still uses the two-phase native-call recipe:
 
 1. first turn emits a simple native `http.post`;
 2. every `ok` requests the native special-quote call with the Gemma thought-prefix surface;
-3. the carried data value repeats the `NO_JSON` and `data` tokens so the model keeps emitting native `data:<|"|>...<|"|>` rather than copying the SDK-rendered JSON history.
+3. the carried data value provides a short lexical anchor (`O`) that keeps the model emitting native `data:<|"|>...<|"|>` rather than copying the SDK-rendered JSON history.
 
 Historical diagnosis remains valid: by late generations, llama.cpp's Gemma chat template renders successful prior calls back into the prompt as parser-invalid single-brace JSON tool-call surfaces. Earlier prompts copied that recent rendered history and failed around generation 7 or 8.
 
@@ -73,7 +99,7 @@ The opt-in mapping-history control still confirms that diagnosis, but the Round 
 
 The previous best public-SDK multi-message fallback remains `k6_exact_then_two_k1_rescues`: one exact K6 message followed by two ordinary one-shot rescue messages. It reached exactly eight successful posts/raw 130 in 10/10 local samples with median elapsed 19.045s and median prompt/completion tokens 15599 / 268. That is now secondary because Round 30c achieved true one-message K8.
 
-Do not submit this blindly as a production default until its throughput tradeoff is checked against the current validation-fill path and, ideally, hosted on Kaggle.
+The current attack integration uses `USE_GEMMA_K8_O=True`: after latency classification identifies the fast row, it returns duplicate static Gemma K8-O candidates. A 3-candidate smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. Hosted verification is still required before treating the leaderboard transfer as proven.
 
 ## Recent rounds 24-30
 
@@ -91,6 +117,13 @@ Do not submit this blindly as a production default until its throughput tradeoff
 - Round 33 shortened the surrounding instruction while keeping `__NO_JSON_data`: selected 40/40 K8, aggregate 7.243 raw/s, now 6.5% below the local K1 baseline instead of 27.1% below.
 - Round 34 tested shorter surrounding instructions, prompt-side precommit to omit the thought prefix, lowercase/stem anchors, short URL changes, and bare-native shorter calls. Bare-native saved tokens on the first generation but failed K8; the prompt-side precommit reached only K6. The reliable path still requires the longer native special-quote call plus the thought-prefix surface.
 - Round 35 swept shorter carried anchors. `__NOJDATA` looked promising in the mixed screen but failed as K7 when isolated. `__NJ_data` reproduced in isolated warmup-normal runs and aggregated 40/40 K8 with median prompt/completion/total tokens 10766 / 289 / 11055. No-warmup dropped to K6, so this candidate should be treated as warmup/order-sensitive until validated in the real candidate-bank replay order.
+- Rounds 36-43 tested shorter URLs, bare native forms, thought-prefix compression, scheme-less URLs, micro anchors, K7-terminal economics, and static prompt compression. Shorter-looking syntax usually regressed to K6/K7; K7 without an eighth generation still missed the K1 raw/s gate.
+- Round 44 found a mixed-screen `data` anchor K8, but it failed when isolated. This repeated the earlier lesson that mixed-bank K8 hits can be sampling/order artifacts.
+- Round 45 found isolated `OK` as a stable shorter carried anchor: 8/8 K8, aggregate 7.795 raw/s.
+- Round 47 combined `OK` with no-scheme `url:"a"`: 40/40 K8, 7.834 raw/s, but duplicate-cell-adjusted 7.716 raw/s was still slightly below K1.
+- Rounds 49-52 checked production-safe URL diversity. Candidate-specific full URLs, custom schemes, one-letter HTTP domains other than `a.co`, and `a.<tld>` variants were unstable or too slow.
+- Round 53 replaced `OK` with `O` on no-scheme `url:"a"`: 40/40 K8, aggregate 8.573 raw/s, duplicate-cell-adjusted 8.444 raw/s.
+- Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt, so the current integration returns static duplicate Gemma K8-O candidates after fast-row classification.
 
 ## Commands
 
