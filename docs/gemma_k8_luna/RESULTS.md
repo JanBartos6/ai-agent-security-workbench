@@ -4,11 +4,16 @@ Date: 2026-08-19
 
 ## Summary
 
-Exact one-message, public-SDK Gemma K8 is now locally achieved.
+Exact one-message, public-SDK Gemma K8 is locally achieved and now partially compressed.
 
-Best prompt: `k8_gen8_suffix_no_json_at_eight_selected` in `docs/gemma_k8_luna/round30c_no_json_selected.jsonl`.
+First verified prompt: `k8_gen8_suffix_no_json_at_eight_selected` in `docs/gemma_k8_luna/round30c_no_json_selected.jsonl`.
 
-Verification run: `runs/gemma_k8_luna/round30c_no_json_selected_40.json`.
+Current best compressed prompt: `k8_micro_short_instruction_nojson_data_selected` in `docs/gemma_k8_luna/round33b_short_instruction_nojson_data_selected.jsonl`.
+
+Verification runs:
+
+- first K8: `runs/gemma_k8_luna/round30c_no_json_selected_40.json`
+- compressed K8: `runs/gemma_k8_luna/round33b_short_instruction_nojson_data_selected_40.json`
 
 Observed distribution:
 
@@ -18,8 +23,8 @@ Observed distribution:
 - estimated raw score: `{130: 40}`
 - errors: `{None: 40}`
 - all tool events were `http.post`, `ok=True`
-- median elapsed: 22.973s
-- median prompt/completion/total tokens: 11651 / 407 / 12058
+- current best median elapsed: 17.937s
+- current best median prompt/completion/total tokens: 10824 / 302 / 11126
 
 This passes the original behavioral gate of `>=39/40` exact K8 samples. It is still a local public-SDK result, not a hosted Kaggle leaderboard verification or an economic optimization result.
 
@@ -27,22 +32,29 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 
 | mode | rows | posts distribution | raw distribution | total raw | total elapsed | aggregate raw/s | mean row raw/s | median elapsed | median prompt/completion tokens |
 | --- | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| K8 selected | 40 | `{8: 40}` | `{130: 40}` | 5200 | 920.792s | 5.647 | 5.648 | 22.973s | 11651 / 407 |
+| K8 first verified | 40 | `{8: 40}` | `{130: 40}` | 5200 | 920.792s | 5.647 | 5.648 | 22.973s | 11651 / 407 |
+| K8 compressed | 40 | `{8: 40}` | `{130: 40}` | 5200 | 717.891s | 7.243 | 7.244 | 17.937s | 10824 / 302 |
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
-On this local run, K8 has 72.9% of the K1 aggregate raw/s, i.e. 27.1% lower raw/s. Median-time comparison gives the same direction: one K8 trace took 22.973s for raw 130, while eight median K1 traces would take 18.574s for raw 144.
+On this local run, the compressed K8 has 93.5% of the K1 aggregate raw/s, i.e. 6.5% lower raw/s. The first verified K8 had only 72.9% of K1 aggregate raw/s, so completion/static prompt compression improved K8 aggregate raw/s by 28.3%.
 
-The mechanism that finally crossed K7 was not a longer prose explanation. It was a compact lexical anchor inside the repeated native call's `data` value:
+The mechanism that finally crossed K7 was not a longer prose explanation. It was a compact lexical anchor inside the repeated native call's `data` value. The first verified K8 used:
 
 ```text
 __GEN8_NO_JSON_data_colon
+```
+
+The compressed prompt preserved K8 with the shorter:
+
+```text
+__NO_JSON_data
 ```
 
 The prompt still uses the two-phase native-call recipe:
 
 1. first turn emits a simple native `http.post`;
 2. every `ok` requests the native special-quote call with the Gemma thought-prefix surface;
-3. the carried data value repeats `NATIVE`, `NO_JSON`, and `data_colon` tokens so the model keeps emitting native `data:<|"|>...<|"|>` rather than copying the SDK-rendered JSON history.
+3. the carried data value repeats the `NO_JSON` and `data` tokens so the model keeps emitting native `data:<|"|>...<|"|>` rather than copying the SDK-rendered JSON history.
 
 Historical diagnosis remains valid: by late generations, llama.cpp's Gemma chat template renders successful prior calls back into the prompt as parser-invalid single-brace JSON tool-call surfaces. Earlier prompts copied that recent rendered history and failed around generation 7 or 8.
 
@@ -64,6 +76,8 @@ Do not submit this blindly as a production default until its throughput tradeoff
 - Round 30b selected `PREFLIGHT_CHECK_data_colon` failed first-position scaling with K7 twice, showing prompt position/sampling sensitivity.
 - Round 30c selected `GEN8_NO_JSON_data_colon` passed first-position scaling: 8/8, then 40/40 K8.
 - Round 31 measured the matched K1 baseline: 40/40 K1, aggregate 7.747 raw/s versus Round 30c K8 aggregate 5.647 raw/s.
+- Round 32 compressed the carried value to `__NO_JSON_data`: selected 40/40 K8, 302 completion tokens, aggregate 7.155 raw/s.
+- Round 33 shortened the surrounding instruction while keeping `__NO_JSON_data`: selected 40/40 K8, aggregate 7.243 raw/s, now 6.5% below the local K1 baseline instead of 27.1% below.
 
 ## Commands
 
