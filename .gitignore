@@ -12,6 +12,7 @@
 /models/
 /runs/
 /dist/
+/codex_tmp/
 
 # Local credentials and machine-specific configuration.
 .env
@@ -20,4 +21,3 @@
 *.key
 *.pem
 kaggle.json
-
