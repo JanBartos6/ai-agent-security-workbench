@@ -17,7 +17,8 @@ Verification runs:
 - lowest-token K8: `runs/gemma_k8_luna/round35d_nj_data_selected_warm_40_aggregated.json`
 - first local raw/s gate pass: `runs/gemma_k8_luna/round47a_OK_url_a_selected_40.json`
 - fastest K8 and duplicate-cell-adjusted gate pass: `runs/gemma_k8_luna/round53a_url_a_O_selected_40.json`
-- integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
+- first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
+- live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 
 Observed distribution:
 
@@ -99,7 +100,7 @@ The opt-in mapping-history control still confirms that diagnosis, but the Round 
 
 The previous best public-SDK multi-message fallback remains `k6_exact_then_two_k1_rescues`: one exact K6 message followed by two ordinary one-shot rescue messages. It reached exactly eight successful posts/raw 130 in 10/10 local samples with median elapsed 19.045s and median prompt/completion tokens 15599 / 268. That is now secondary because Round 30c achieved true one-message K8.
 
-The current attack integration uses `USE_GEMMA_K8_O=True`: after latency classification identifies the fast row, it returns duplicate static Gemma K8-O candidates. A 3-candidate smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. Hosted verification is still required before treating the leaderboard transfer as proven.
+The current attack integration uses `USE_GEMMA_K8_O=True`: after latency classification identifies the fast row, it live-validates Gemma K8-O candidates under the attack-generation budget, applies the same `K8_TAIL_TRIM_MULT=1.30` median tail trim to full-K8 traces, and pads the replay list to `GEMMA_K8_O_BANK_N=500` with the same locally verified duplicate prompt. A 3-candidate bank-path smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. Hosted verification is still required before treating the leaderboard transfer as proven.
 
 ## Recent rounds 24-30
 
@@ -123,7 +124,7 @@ The current attack integration uses `USE_GEMMA_K8_O=True`: after latency classif
 - Round 47 combined `OK` with no-scheme `url:"a"`: 40/40 K8, 7.834 raw/s, but duplicate-cell-adjusted 7.716 raw/s was still slightly below K1.
 - Rounds 49-52 checked production-safe URL diversity. Candidate-specific full URLs, custom schemes, one-letter HTTP domains other than `a.co`, and `a.<tld>` variants were unstable or too slow.
 - Round 53 replaced `OK` with `O` on no-scheme `url:"a"`: 40/40 K8, aggregate 8.573 raw/s, duplicate-cell-adjusted 8.444 raw/s.
-- Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt, so the current integration returns static duplicate Gemma K8-O candidates after fast-row classification.
+- Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt, so the current integration uses a live-validated Gemma K8-O head plus a 500-entry duplicate bank after fast-row classification.
 
 ## Commands
 

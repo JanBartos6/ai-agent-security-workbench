@@ -84,6 +84,7 @@ SPLIT_THRESHOLD_S = 12.0  # mean latency above this classifies the row as "slow"
 SPLIT_CLASSIFY_N = 8      # candidates sampled before fixing the template choice
 USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
 USE_GEMMA_K8_O = True      # 40/40 local Gemma K8, duplicate-cell-adjusted > K1
+GEMMA_K8_O_BANK_N = 500    # enough to saturate Gemma replay, avoids huge tails
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
@@ -537,12 +538,25 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         if classify_sum / classify_n > split_threshold
                         else (gemma_frame_template if use_gemma_forge else TEMPLATE)
                     )
-                    if use_gemma_k8_o and chosen_template != frame_template:
-                        msg = _gemma_k8_o_msg()
-                        return [
-                            AttackCandidate.from_messages((msg,))
-                            for _ in range(cap)
-                        ]
+                    if use_gemma_k8_o and chosen_template != frame_template and hops >= 8:
+                        return self._fill_gemma_k8_o(
+                            env,
+                            run_start=run_start,
+                            deadline=deadline,
+                            cap=cap,
+                            hops=hops,
+                            margin_s=margin_s,
+                            floor_min=floor_min,
+                            slowest_coef=slowest_coef,
+                            seed_slowest=slowest,
+                            k8_tail_trim_mult=k8_tail_trim_mult,
+                            bank_n=int(
+                                self.config.get(
+                                    "gemma_k8_o_bank_n",
+                                    GEMMA_K8_O_BANK_N,
+                                )
+                            ),
+                        )
             if fired:
                 if (
                     not multipost_probe
@@ -628,6 +642,72 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 kept_messages.add(msg)
 
         return [AttackCandidate.from_messages((msg,)) for _, msg in kept]
+
+    def _fill_gemma_k8_o(
+        self,
+        env: Any,
+        *,
+        run_start: float,
+        deadline: float,
+        cap: int,
+        hops: int,
+        margin_s: float,
+        floor_min: float,
+        slowest_coef: float,
+        seed_slowest: float,
+        k8_tail_trim_mult: float,
+        bank_n: int,
+    ) -> list[AttackCandidate]:
+        """Fast-row Gemma K8 path.
+
+        This mirrors the GPT-OSS bank discipline: spend the attack-generation
+        phase validating as many full-K8 examples as the budget safely permits,
+        trim unusually slow full-K8 traces at 1.30x median by default, then pad
+        with the same locally verified prompt bank so the replay phase does not
+        run out of candidates.
+
+        The bank entries are intentionally duplicate prompts.  The no-scheme
+        URL collapses their cell bonus to one unique cell, but the Round 53
+        40-row run still beat K1 after applying that duplicate-cell adjustment.
+        """
+        target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
+        msg = _gemma_k8_o_msg()
+        kept: list[tuple[float, str]] = []
+        kept_elapsed: list[float] = []
+        slowest = max(float(seed_slowest), LAT_FLOOR_S)
+        min_posts = min(8, max(1, int(hops)))
+
+        while len(kept) < target:
+            margin = _adaptive_margin(slowest, margin_s, floor_min, slowest_coef)
+            if time.monotonic() + max(slowest * SLOWEST_MULT, margin) >= deadline:
+                break
+            t0 = time.monotonic()
+            try:
+                env.reset()
+                env.interact(msg, max_tool_hops=hops)
+                posts_fired = self._posts_fired(env)
+            except Exception:
+                break
+            elapsed = time.monotonic() - t0
+            slowest = max(slowest, elapsed, LAT_FLOOR_S)
+            if posts_fired < min_posts:
+                continue
+            if (
+                k8_tail_trim_mult > 0
+                and kept_elapsed
+                and elapsed > k8_tail_trim_mult * statistics.median(kept_elapsed)
+            ):
+                continue
+            kept.append((elapsed, msg))
+            kept_elapsed.append(elapsed)
+
+        if not kept:
+            return []
+
+        while len(kept) < target:
+            kept.append((float("inf"), msg))
+
+        return [AttackCandidate.from_messages((message,)) for _, message in kept]
 
     @staticmethod
     def _fired(env: Any) -> bool:
