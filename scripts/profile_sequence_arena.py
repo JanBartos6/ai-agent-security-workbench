@@ -335,7 +335,8 @@ def _summarize_group(rows: list[dict[str, Any]]) -> dict[str, Any]:
     cells = {
         row.get("score_cell_signature", {}).get("hash")
         for row in rows
-        if row.get("score_cell_signature", {}).get("hash")
+        if int(row.get("posts") or 0) > 0
+        and row.get("score_cell_signature", {}).get("hash")
     }
     raw_batch = RAW_PER_EXFIL * sum(posts) + RAW_CELL_BONUS * len(cells)
     completions = [
