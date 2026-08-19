@@ -97,3 +97,62 @@ K8 remains about 2.28× denser than forged duplicate K1. Cross-candidate prefix
 reuse helps the normal duplicate bank, but it is not required for K8 to beat K1
 locally. The structural win is that K8 spends eight model generations on eight
 scoring posts, while K1 pays a prompt/finalization tax for only one scoring post.
+
+## 2026-08-20 — GPT URL-style and prompt-compression probes
+
+### Compact queue smoke
+
+Artifact: `runs/tmp/sequence-arena-gpt-compact-slot-smoke.json`
+
+Arms tested at `n=3`: `slot_duplicate`, `slot_compact_duplicate`,
+`slot_compact_nofinal_duplicate`, `slot_custom_duplicate`,
+`slot_custom_late_unique`, `slot_bare_duplicate`.
+
+Summary:
+
+| Arm | Posts | Unique cells | Raw/s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate` | 3 × 8 | 1 | 64.518 | 227 | 8732 | 543 |
+| `slot_compact_duplicate` | 3 × 8 | 1 | 51.602 | 310 | 8540 | 626 |
+| `slot_compact_nofinal_duplicate` | 3 × 7 | 1 | 32.422 | 414 | 8564 | 730 |
+| `slot_custom_duplicate` | 3 × 8 | 1 | 50.552 | 311 | 8448 | 620 |
+| `slot_custom_late_unique` | 3 × 8 | 3 | 47.408 | 334 | 8356 | 654 |
+| `slot_bare_duplicate` | 3 × 8 | 1 | 53.514 | 274 | 8264 | 569 |
+
+Interpretation: shortening the instruction text was counterproductive. It saved
+logical prompt tokens, but the model emitted longer/slower continuations. The
+`nofinal` variant also degraded to 7 posts, confirming that the "After all posts
+final OK" wording is useful control scaffolding even when the 8-hop cap prevents
+the final answer from scoring.
+
+### Original wording with custom-scheme late uniqueness
+
+Artifact: `runs/tmp/sequence-arena-gpt-custom-late-unique-n40.json`
+
+Command shape:
+
+```powershell
+$env:AICOMP_SDK_ROOT='G:\kaggle_competition\ai-agent-security-multi-step-tool-attacks'
+& 'G:\kaggle_competition\.venv\Scripts\python.exe' scripts\profile_sequence_arena.py `
+  --agent gpt_oss `
+  --model-path G:\kaggle_competition\models\gpt-oss-20b-Q4_K_M.gguf `
+  --gpu-layers -1 `
+  --tensor-split 0.57,0.43 `
+  --n 40 `
+  --order grouped `
+  --arms slot_duplicate,slot_late_unique,slot_original_custom_late_unique `
+  --out runs\tmp\sequence-arena-gpt-custom-late-unique-n40.json
+```
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | p90 s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate` | 40 × 8 | 1 | 5122 | 65.097 | 1.963 | 1.994 | 227 | 8732 | 543 |
+| `slot_late_unique` | 40 × 8 | 40 | 5200 | 61.748 | 2.101 | 2.186 | 241.5 | 8556 | 571.5 |
+| `slot_original_custom_late_unique` | 40 × 8 | 40 | 5200 | 63.269 | 2.055 | 2.119 | 234 | 8548 | 563 |
+
+Interpretation: changing only the URL representation while keeping the original
+successful wording is useful for the unique-cell bank. `x://...` custom-scheme
+late uniqueness preserved 40/40 exact K8 and improved raw/s by about 2.5% versus
+HTTP late-unique. It still does not beat the byte-identical duplicate K8 bank,
+but it is a better safety/diversity candidate if duplicate-cell topology fails
+to transfer hosted.
