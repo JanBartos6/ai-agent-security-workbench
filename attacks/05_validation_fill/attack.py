@@ -83,8 +83,9 @@ SPLIT_BY_LATENCY = True   # route the forged template to the slow (gpt_oss) row
 SPLIT_THRESHOLD_S = 12.0  # mean latency above this classifies the row as "slow"
 SPLIT_CLASSIFY_N = 8      # candidates sampled before fixing the template choice
 USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
-USE_GEMMA_K8_O = True      # 40/40 local Gemma K8, duplicate-cell-adjusted > K1
-GEMMA_K8_O_BANK_N = 500    # enough to saturate Gemma replay, avoids huge tails
+USE_GEMMA_K8_O = True      # local Gemma K8, duplicate-cell-adjusted > K1
+GEMMA_K8_O_BANK_N = 500    # full duplicate K8-O bank for Gemma replay
+GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K8
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
