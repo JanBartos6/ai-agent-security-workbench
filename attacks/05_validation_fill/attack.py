@@ -86,6 +86,9 @@ USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
 USE_GEMMA_K8_O = True      # local Gemma K8, duplicate-cell-adjusted > K1
 GEMMA_K8_O_BANK_N = 500    # full duplicate K8-O bank for Gemma replay
 GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K8
+USE_GPT_DUPLICATE_K8 = False  # experimental: validate/pad one GPT slot K8 prompt
+GPT_DUPLICATE_K8_BANK_N = 500
+GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
@@ -411,6 +414,18 @@ class AttackAlgorithm(AttackAlgorithmBase):
         )
         use_gemma_forge = bool(self.config.get("use_gemma_forge", USE_GEMMA_FORGE))
         use_gemma_k8_o = bool(self.config.get("use_gemma_k8_o", USE_GEMMA_K8_O))
+        use_gpt_duplicate_k8 = bool(
+            self.config.get("use_gpt_duplicate_k8", USE_GPT_DUPLICATE_K8)
+        )
+        gpt_duplicate_k8_bank_n = int(
+            self.config.get("gpt_duplicate_k8_bank_n", GPT_DUPLICATE_K8_BANK_N)
+        )
+        gpt_duplicate_k8_bank_index = int(
+            self.config.get(
+                "gpt_duplicate_k8_bank_index",
+                GPT_DUPLICATE_K8_BANK_INDEX,
+            )
+        )
         replay_safe_sizing = bool(
             self.config.get("replay_safe_sizing", REPLAY_SAFE_SIZING)
         )
@@ -539,6 +554,21 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         if classify_sum / classify_n > split_threshold
                         else (gemma_frame_template if use_gemma_forge else TEMPLATE)
                     )
+                    if use_gpt_duplicate_k8 and chosen_template == frame_template and hops >= 8:
+                        return self._fill_gpt_duplicate_k8(
+                            env,
+                            run_start=run_start,
+                            deadline=deadline,
+                            cap=cap,
+                            hops=hops,
+                            margin_s=margin_s,
+                            floor_min=floor_min,
+                            slowest_coef=slowest_coef,
+                            seed_slowest=slowest,
+                            k8_tail_trim_mult=k8_tail_trim_mult,
+                            bank_n=gpt_duplicate_k8_bank_n,
+                            bank_index=gpt_duplicate_k8_bank_index,
+                        )
                     if use_gemma_k8_o and chosen_template != frame_template and hops >= 8:
                         return self._fill_gemma_k8_o(
                             env,
@@ -643,6 +673,69 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 kept_messages.add(msg)
 
         return [AttackCandidate.from_messages((msg,)) for _, msg in kept]
+
+    def _fill_gpt_duplicate_k8(
+        self,
+        env: Any,
+        *,
+        run_start: float,
+        deadline: float,
+        cap: int,
+        hops: int,
+        margin_s: float,
+        floor_min: float,
+        slowest_coef: float,
+        seed_slowest: float,
+        k8_tail_trim_mult: float,
+        bank_n: int,
+        bank_index: int,
+    ) -> list[AttackCandidate]:
+        """Slow-row GPT duplicate K8 topology probe.
+
+        The ordinary GPT K8 bank intentionally skips exact duplicate messages.
+        This path does the opposite: after latency classification proves we are
+        on the slow/Harmony row, validate one locally proven slot-label K8 prompt
+        repeatedly, then pad with that exact same message.  It directly tests
+        whether the local duplicate-prefix advantage transfers to hosted replay.
+        """
+        target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
+        msg = _slot_plan_msg(int(bank_index), 8)
+        kept: list[tuple[float, str]] = []
+        kept_elapsed: list[float] = []
+        slowest = max(float(seed_slowest), LAT_FLOOR_S)
+        min_posts = min(8, max(1, int(hops)))
+
+        while len(kept) < target:
+            margin = _adaptive_margin(slowest, margin_s, floor_min, slowest_coef)
+            if time.monotonic() + max(slowest * SLOWEST_MULT, margin) >= deadline:
+                break
+            t0 = time.monotonic()
+            try:
+                env.reset()
+                env.interact(msg, max_tool_hops=hops)
+                posts_fired = self._posts_fired(env)
+            except Exception:
+                break
+            elapsed = time.monotonic() - t0
+            slowest = max(slowest, elapsed, LAT_FLOOR_S)
+            if posts_fired < min_posts:
+                continue
+            if (
+                k8_tail_trim_mult > 0
+                and kept_elapsed
+                and elapsed > k8_tail_trim_mult * statistics.median(kept_elapsed)
+            ):
+                continue
+            kept.append((elapsed, msg))
+            kept_elapsed.append(elapsed)
+
+        if not kept:
+            return []
+
+        while len(kept) < target:
+            kept.append((float("inf"), msg))
+
+        return [AttackCandidate.from_messages((message,)) for _, message in kept]
 
     def _fill_gemma_k8_o(
         self,

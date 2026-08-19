@@ -15,11 +15,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_ROOT = ROOT / "ai-agent-security-multi-step-tool-attacks"
+if not SDK_ROOT.exists() and os.environ.get("AICOMP_SDK_ROOT"):
+    SDK_ROOT = Path(os.environ["AICOMP_SDK_ROOT"]).resolve()
 sys.dont_write_bytecode = True
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -56,6 +59,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Local live-fill smoke test.")
     parser.add_argument("--attack", type=Path, default=Path("attacks/05_validation_fill/attack.py"))
     parser.add_argument("--agent", choices=["deterministic", "gpt_oss", "gemma"], default="gpt_oss")
+    parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--budget-s", type=float, default=60.0)
     parser.add_argument("--gpu-layers", type=int, default=-1)
     parser.add_argument("--tensor-split", type=str, default=None)
@@ -72,12 +76,18 @@ def main() -> int:
         help="Optional JSON dict merged into the attack config, e.g. "
         "'{\"split_threshold_s\": 0.001}' to force the slow-row forge locally.",
     )
+    parser.add_argument(
+        "--attack-config-file",
+        type=Path,
+        default=None,
+        help="Path to a JSON dict merged into the attack config; avoids shell quoting issues.",
+    )
     args = parser.parse_args()
 
     attack_path = (ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack.resolve()
     attack_cls, _ = load_attack(attack_path)
 
-    factory, label, model_server, _ = resolve_model(args.agent, None)
+    factory, label, model_server, _ = resolve_model(args.agent, args.model_path)
     if model_server is not None:
         split = (
             tuple(float(x.strip()) for x in args.tensor_split.split(","))
@@ -91,9 +101,10 @@ def main() -> int:
         max_steps=10**9,
         max_tool_hops=8,
     )
-    attack_config: dict = (
-        json.loads(args.attack_config) if args.attack_config else {}
-    )
+    if args.attack_config_file is not None:
+        attack_config = json.loads(args.attack_config_file.read_text(encoding="utf-8"))
+    else:
+        attack_config = json.loads(args.attack_config) if args.attack_config else {}
     guardrail_spec = resolve_guardrail(args.guardrail)
     kwargs: dict = {
         "budget_s": args.budget_s,
