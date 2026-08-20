@@ -19,6 +19,7 @@ import json
 import os
 import time
 
+from requests import HTTPError
 from kaggle.api.kaggle_api_extended import KaggleApi
 from kagglesdk.kernels.services.kernels_api_service import ApiSaveKernelRequest
 from kagglesdk.kernels.types.kernels_enums import KernelExecutionType
@@ -61,7 +62,13 @@ def push_with_run(api: KaggleApi, folder: str) -> dict:
         req.docker_image = meta.get("docker_image")
         req.machine_shape = meta.get("machine_shape")
         req.kernel_execution_type = KernelExecutionType.SAVE_AND_RUN_ALL
-        resp = kaggle.kernels.kernels_api_client.save_kernel(req)
+        try:
+            resp = kaggle.kernels.kernels_api_client.save_kernel(req)
+        except HTTPError as exc:
+            response = getattr(exc, "response", None)
+            if response is not None:
+                print("kaggle HTTP error body:", response.text[:4000])
+            raise
     result = {
         "ref": resp.ref,
         "url": resp.url,

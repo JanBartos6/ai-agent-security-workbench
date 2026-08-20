@@ -27,6 +27,7 @@ DOCKER_IMAGE = (
     "sha256:57e612b484cf3df5026ee4dcc3cb176974b22b2bc0937fb1e16132a8be4cb13c"
 )
 MACHINE_SHAPE = "NvidiaTeslaT4"
+MAX_TITLE_CHARS = 50
 
 _CELL_HEADER = (
     "import glob, sys\n"
@@ -55,6 +56,11 @@ _CELL_FOOTER = (
 
 
 def build_notebook(attack_path: Path, out_path: Path, title: str) -> None:
+    if len(title) > MAX_TITLE_CHARS:
+        raise ValueError(
+            f"Kaggle kernel title is {len(title)} characters; "
+            f"maximum is {MAX_TITLE_CHARS}: {title!r}"
+        )
     source = attack_path.read_text(encoding="utf-8")
     if "'''" in source:
         raise ValueError("attack.py contains ''' which would break the raw-string embed")
