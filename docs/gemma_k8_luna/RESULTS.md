@@ -24,6 +24,7 @@ Verification runs:
 - Round 57 selected 20-row check: `runs/tmp/gemma-lab/round57_no_never_final_selected_20.json`
 - Round 57 selected no-warmup check: `runs/tmp/gemma-lab/round57_no_never_final_selected_no_warmup_3.json`
 - Round 57 opt-in attack-path smoke: `scripts/verify_fill.py --agent gemma --gpu-layers 24 --tensor-split 0.57,0.43 --budget-s 160 --attack-config-file runs\tmp\verify-fill-gemma-r57-config.json`
+- Round 58 phrase probe: `runs/tmp/gemma-lab/round58_phrase_probe_repeat2.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -161,6 +162,13 @@ The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct pro
   candidate removed `Never final text.`: it passed 2/2 in the mixed probe, then
   20/20 isolated warmup-normal and 3/3 no-warmup, with token counts
   `10471 / 235 / 10706`.
+- Round 58 isolated phrase-level shortening around the Round 57 prompt. All
+  shortened variants failed before K8: `First output:` -> `First:` produced one
+  zero-score outlier and one K1; shortening `After every ok, output with thought
+  prefix:` collapsed to K1/K3; shortening the receipt sentence or removing blank
+  lines reached only K1/K3/K6. The Round 57 control reproduced 2/2 K8. Conclusion:
+  the remaining section labels and spacing are functional scaffolding, not safe
+  prompt bloat.
 
 ## Commands
 
