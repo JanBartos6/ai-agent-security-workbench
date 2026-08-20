@@ -356,6 +356,17 @@ def _message_for_arm(attack: Any, arm: str, index: int, k: int, duplicate_index:
         return (attack._msg(duplicate_index, attack.FRAME_TEMPLATE),)
     if arm == "gemma_k8_o_duplicate":
         return (attack._gemma_k8_o_msg(),)
+    if arm.startswith("slot_unique_k"):
+        return (k8_variant_message(attack, index, int(arm.removeprefix("slot_unique_k")), "slotlabels"),)
+    if arm.startswith("slot_duplicate_k"):
+        return (
+            k8_variant_message(
+                attack,
+                duplicate_index,
+                int(arm.removeprefix("slot_duplicate_k")),
+                "slotlabels",
+            ),
+        )
     if arm == "slot_unique":
         return (k8_variant_message(attack, index, k, "slotlabels"),)
     if arm == "slot_duplicate":

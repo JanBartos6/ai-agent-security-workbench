@@ -219,3 +219,58 @@ posts, yet it falls below a single K8 block in both normal and candidate-cold
 tests. The four-block forms are worse: they either underfire or produce more
 posts with lower raw/s. This path should stay as evidence, not as a promoted
 submission strategy.
+
+## 2026-08-20 — GPT slot-label K sweep
+
+Goal: verify whether K8 is still the best slot-label target, or whether a lower
+K value wins by using fewer tokens. K9/K10 are not submission-valid under the
+current eight-hop cap, so this direct sweep compares K4 through K8.
+
+Implementation note: `scripts/profile_sequence_arena.py` now supports
+`slot_duplicate_kN` and `slot_unique_kN` profiler arms so multiple K values can
+be compared inside one model process.
+
+### Normal grouped run
+
+Artifact: `runs/tmp/sequence-arena-gpt-k-sweep-slot-dup-n20.json`
+
+Command shape:
+
+```powershell
+$env:AICOMP_SDK_ROOT='G:\kaggle_competition\ai-agent-security-multi-step-tool-attacks'
+& 'G:\kaggle_competition\.venv\Scripts\python.exe' scripts\profile_sequence_arena.py `
+  --agent gpt_oss `
+  --model-path G:\kaggle_competition\models\gpt-oss-20b-Q4_K_M.gguf `
+  --gpu-layers -1 `
+  --tensor-split 0.57,0.43 `
+  --n 20 `
+  --order grouped `
+  --arms slot_duplicate_k4,slot_duplicate_k5,slot_duplicate_k6,slot_duplicate_k7,slot_duplicate_k8 `
+  --out runs\tmp\sequence-arena-gpt-k-sweep-slot-dup-n20.json
+```
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate_k4` | 20 × 4 | 1 | 1282 | 53.869 | 1.191 | 135 | 4980 | 316 |
+| `slot_duplicate_k5` | 20 × 5 | 1 | 1602 | 55.680 | 1.432 | 164 | 6153 | 390 |
+| `slot_duplicate_k6` | 20 × 6 | 1 | 1922 | 58.467 | 1.634 | 185 | 7385 | 456 |
+| `slot_duplicate_k7` | 20 × 7 | 1 | 2242 | 57.942 | 1.934 | 219 | 8676 | 535 |
+| `slot_duplicate_k8` | 20 × 8 | 1 | 2562 | 64.406 | 1.982 | 227 | 8732 | 543 |
+
+### Candidate-cold sanity check
+
+Artifact: `runs/tmp/sequence-arena-gpt-k-sweep-slot-dup-candidate-cold-n10.json`
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate_k4` | 10 × 4 | 1 | 642 | 46.434 | 1.379 | 132 | 4980 | 1218 |
+| `slot_duplicate_k5` | 10 × 5 | 1 | 802 | 49.256 | 1.632 | 161 | 6153 | 1299 |
+| `slot_duplicate_k6` | 10 × 6 | 1 | 962 | 52.734 | 1.817 | 179 | 7385 | 1369 |
+| `slot_duplicate_k7` | 10 × 7 | 1 | 1122 | 51.424 | 2.177 | 224 | 8676 | 1466 |
+| `slot_duplicate_k8` | 10 × 8 | 1 | 1282 | 56.397 | 2.268 | 237 | 8732 | 1486 |
+
+Interpretation: K8 remains the correct GPT-OSS slot-label target. K4-K6 are
+reliable but lose scoring density, and K7 is structurally awkward: it uses the
+same eight model calls as K8 because it emits seven tool calls plus a final
+answer, but scores only seven posts. K8 uses the full eight-hop cap for eight
+scoring posts and therefore wins in both normal and candidate-cold runs.
