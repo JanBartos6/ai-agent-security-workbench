@@ -88,7 +88,7 @@ The helper reads an attack file from an explicit git ref, applies named constant
 overrides, asserts the intended final constants, writes the generated attack
 under ignored `runs/`, and records a manifest next to it.
 
-Prepared but not submitted while `55648851` is pending:
+Prepared and later submitted while `55648851` was still pending:
 
 ```powershell
 G:\kaggle_competition\.venv\Scripts\python.exe scripts\build_attack_variant.py `
@@ -103,10 +103,8 @@ G:\kaggle_competition\.venv\Scripts\python.exe scripts\build_attack_variant.py `
   --expect GPT_DUPLICATE_K8_BANK_INDEX=11565
 ```
 
-This queued GPT duplicate-topology variant starts from the restored safe
-baseline (`eca381f`) and does not include Gemma K8-O.  Submit it only after the
-Gemma-isolation result is known, unless deliberately choosing to spend quota on
-a separate GPT-only hosted topology probe.
+This GPT duplicate-topology variant starts from the restored safe baseline
+(`eca381f`) and does not include Gemma K8-O.
 
 Local smoke evidence for the generated variant:
 
@@ -125,3 +123,15 @@ Result: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
 `score_normalized=1.93`, `attack_elapsed_s=23.268`.  The raw score matches
 `3 * 8 * 16 + 2`, confirming the generated variant enters the duplicate GPT K8
 path locally.  This is still not hosted evidence.
+
+Hosted submission:
+
+| submission ref | source ref | description | status at submit time |
+| --- | --- | --- | --- |
+| `55649067` | `eca381f` + `USE_GPT_DUPLICATE_K8=True` | GPT duplicate K8 topology on safe baseline; Gemma off | `PENDING` |
+
+Interpretation rule: compare `55649067` against the `96.010` control and the
+`66.425` slot-label failure.  If it drops like slot-labels, duplicate GPT K8
+does not hosted-transfer despite the local smoke.  If it lands near or above
+`96.010`, the local duplicate topology is viable and can later be combined only
+with a separately proven Gemma result.
