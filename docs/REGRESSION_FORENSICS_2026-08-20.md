@@ -187,3 +187,16 @@ attack_elapsed_s=20.846015453338623
 Interpretation: this is still a GPT-only probe with Gemma off, not a final mixed
 submission. It tests whether the hosted failure is specific to slot-label prompt
 shape rather than duplicate K8 topology itself.
+
+Hosted submission:
+
+| submission ref | source ref | description | status at submit time |
+| --- | --- | --- | --- |
+| `55652403` | `8a15cbd` + `USE_GPT_DUPLICATE_K8=True`, `GPT_DUPLICATE_K8_TEMPLATE="current"` | GPT current-duplicate K8 on safe baseline; Gemma off | `PENDING` |
+
+Interpretation rule: compare `55652403` mainly against `55649067`.  If
+`55649067` fails but `55652403` recovers, the slot-label prompt family is the
+hosted-transfer problem.  If both fail, duplicate GPT K8 topology itself is
+likely not transferable.  If both work, prefer the faster or more stable hosted
+score and then test a combined submission only with separately proven Gemma
+changes.
