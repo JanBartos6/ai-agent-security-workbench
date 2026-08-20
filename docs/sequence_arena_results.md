@@ -406,3 +406,47 @@ Interpretation: changing only current-template URLs from `http://...co` to
 `x://...` preserves K8 but does not improve speed at this sample size. Bare
 current labels fail immediately. Keep `current_original_custom_duplicate` as a
 possible diversity/probe option only; it is not better than `current_duplicate`.
+
+### Current-template duplicate index screen
+
+Artifact: `runs/tmp/sequence-arena-gpt-current-duplicate-index-screen-n3.json`
+
+Goal: test whether the duplicate index used by the GPT current-template probe
+matters. The submitted `55652403` probe reused index `11565`, originally chosen
+for the slot-label topology. This screen compares that control against fast
+indices from the current-template K8 bank.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i11565` | `8×3` | 386 | 62.444 | 2.063 | 232 | 8651 | 542 |
+| `current_duplicate_i1669` | `8×3` | 386 | 62.324 | 2.054 | 234 | 8653 | 544 |
+| `current_duplicate_i39` | `8×3` | 386 | 63.262 | 2.013 | 224 | 8548 | 526 |
+| `current_duplicate_i2777` | `8×3` | 386 | 62.696 | 2.074 | 235 | 8651 | 545 |
+| `current_duplicate_i1448` | `8×3` | 386 | 62.762 | 1.967 | 217 | 8640 | 526 |
+| `current_duplicate_i1287` | `8×3` | 386 | 61.119 | 2.110 | 237 | 8640 | 546 |
+| `current_duplicate_i10566` | `7×3` | 338 | 54.973 | 2.049 | 236 | 8640 | 545 |
+| `current_duplicate_i938` | `8×3` | 386 | 63.637 | 1.955 | 213 | 8640 | 522 |
+| `current_duplicate_i1755` | `8×3` | 386 | 63.228 | 2.009 | 227 | 8640 | 536 |
+| `current_duplicate_i499` | `8×3` | 386 | 65.478 | 1.987 | 241 | 8661 | 551 |
+| `current_duplicate_i322` | `8×3` | 386 | 64.475 | 1.997 | 243 | 8640 | 552 |
+| `current_duplicate_i745` | `8×3` | 386 | 68.911 | 1.861 | 218 | 8640 | 527 |
+
+Interpretation: current-template duplicate performance is index-sensitive.
+Index `10566` underfired to K7 despite being a good unique-bank index. Index
+`745` was the best local duplicate index in this screen, improving local raw/s
+by about 10.4% versus index `11565` while preserving 3/3 exact K8.
+
+Production-path smoke for generated variant
+`runs/variants/gpt-current-duplicate-i745-908af9f/attack.py`:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=19.388829469680786
+```
+
+Decision: submit index `745` as a GPT-only current-template duplicate hosted
+probe. It is a strict local improvement over the earlier current-duplicate
+probe, but still requires hosted transfer evidence before combining.

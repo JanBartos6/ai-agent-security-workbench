@@ -228,3 +228,37 @@ Interpretation rule: compare `55652559` against `55648851`.  If both transfer,
 prefer the faster/higher hosted score.  If `r53` transfers but `r57` does not,
 keep the longer r53 scaffolding.  If neither transfers, keep Gemma K8-O off and
 inspect raw local failure modes before submitting more Gemma variants.
+
+## Fifth controlled probe: GPT current-duplicate index 745
+
+The `55652403` GPT current-duplicate probe used index `11565`, inherited from
+the earlier slot-label topology.  A follow-up local screen showed that
+current-template duplicate performance is index-sensitive and that index `745`
+is a stronger local choice:
+
+| index | local posts | local raw/s | note |
+| ---: | --- | ---: | --- |
+| `11565` | `8/8/8` | `62.444` | submitted current-duplicate control |
+| `745` | `8/8/8` | `68.911` | best local index-screen result |
+| `10566` | `7/7/7` | `54.973` | example of unique-bank index failing in duplicate mode |
+
+Fresh production-path smoke for generated index-745 variant:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=19.388829469680786
+```
+
+Hosted submission:
+
+| submission ref | source ref | description | status at submit time |
+| --- | --- | --- | --- |
+| `55652649` | `908af9f` + `USE_GPT_DUPLICATE_K8=True`, `GPT_DUPLICATE_K8_TEMPLATE="current"`, `GPT_DUPLICATE_K8_BANK_INDEX=745` | GPT current-duplicate K8 index 745 on safe baseline; Gemma off | `PENDING` |
+
+Interpretation rule: compare `55652649` against `55652403`.  If both transfer,
+prefer index `745`; if only `11565` transfers, duplicate-index stability matters
+more than local speed and index `745` should not be promoted.  If neither
+transfers, keep GPT duplicate K8 off.

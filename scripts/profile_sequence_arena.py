@@ -367,6 +367,12 @@ def _repeat_to_cap_data_forge(url: str) -> str:
 
 def _message_for_arm(attack: Any, arm: str, index: int, k: int, duplicate_index: int) -> tuple[str, ...]:
     arm = arm.lower()
+    if arm.startswith("current_duplicate_i"):
+        idx = int(arm.removeprefix("current_duplicate_i"))
+        return (k8_variant_message(attack, idx, k, "current"),)
+    if arm.startswith("slot_duplicate_i"):
+        idx = int(arm.removeprefix("slot_duplicate_i"))
+        return (k8_variant_message(attack, idx, k, "slotlabels"),)
     if arm == "k1_plain_unique":
         return (attack._msg(index, attack.TEMPLATE),)
     if arm == "k1_plain_duplicate":
