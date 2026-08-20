@@ -489,3 +489,55 @@ attack_elapsed_s=20.329851388931274
 
 Decision: if another hosted slot is available and `current_duplicate` is still
 worth probing, submit index `499` before any further grouped-only winner.
+
+### Candidate-cold duplicate index batch 2
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-duplicate-index-candidate-cold-batch2-n3.json`
+
+Goal: continue the candidate-cold duplicate-index search beyond the first small
+batch. Controls `11565` and `499` are included.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i11565` | `8×3` | 386 | 57.478 | 2.242 | 245 | 8651 | 1481 |
+| `current_duplicate_i499` | `8×3` | 386 | 58.905 | 2.183 | 239 | 8661 | 1476 |
+| `current_duplicate_i148` | `8×3` | 386 | 61.147 | 2.100 | 227 | 8653 | 1463 |
+| `current_duplicate_i8325` | `8×3` | 386 | 61.267 | 2.115 | 221 | 8653 | 1457 |
+| `current_duplicate_i5735` | `8×3` | 386 | 61.329 | 2.101 | 225 | 8655 | 1461 |
+| `current_duplicate_i1826` | `8×3` | 386 | 59.513 | 2.149 | 231 | 8640 | 1465 |
+| `current_duplicate_i408` | `8×3` | 386 | 61.176 | 2.105 | 224 | 8640 | 1458 |
+| `current_duplicate_i1919` | `8×3` | 386 | 59.278 | 2.160 | 230 | 8640 | 1464 |
+| `current_duplicate_i1965` | `8×3` | 386 | 60.485 | 2.126 | 229 | 8655 | 1465 |
+| `current_duplicate_i14` | `8×3` | 386 | 55.627 | 2.325 | 255 | 8548 | 1474 |
+| `current_duplicate_i4363` | `8×3` | 386 | 59.818 | 2.153 | 233 | 8640 | 1467 |
+| `current_duplicate_i10535` | `8×3` | 386 | 60.786 | 2.115 | 223 | 8640 | 1457 |
+| `current_duplicate_i312` | `8×3` | 386 | 61.483 | 2.096 | 217 | 8640 | 1451 |
+| `current_duplicate_i8271` | `8×3` | 386 | 59.738 | 2.157 | 232 | 8654 | 1468 |
+
+Interpretation: batch 2 found multiple candidate-cold-stable improvements over
+index `499`. The best local batch-2 index is `312`: 3/3 K8, lowest median
+completion/eval tokens in the batch, and `61.483 raw/s`.
+
+Prepared next-reset variant:
+`runs/variants/gpt-current-duplicate-i312-ab369f2/attack.py` with
+`GPT_DUPLICATE_K8_TEMPLATE="current"`, `GPT_DUPLICATE_K8_BANK_INDEX=312`,
+`USE_GEMMA_K8_O=False`.
+
+Production-path smoke:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=20.572217226028442
+```
+
+Notebook prepared, not submitted because the Kaggle daily submission allowance
+was exhausted:
+`runs/kaggle-gpt-current-dup-i312-ab369f2/gpt-current-dup-i312-ab369f2.ipynb`.
+
+Decision: after reset, if GPT current-duplicate still looks viable from hosted
+scores, submit index `312` before index `499` unless a larger candidate-cold
+scan finds a stronger stable index.

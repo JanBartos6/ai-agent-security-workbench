@@ -289,3 +289,47 @@ attack_elapsed_s=20.329851388931274
 
 Prepared variant, not submitted in this note:
 `runs/variants/gpt-current-duplicate-i499-967d30b/attack.py`.
+
+Attempted hosted submission for index `499` was blocked by Kaggle quota, not by
+notebook execution:
+
+```text
+Submission not allowed: Your team has used its daily Submission allowance (5)
+today, please try again tomorrow UTC (5.1 hours from now).
+```
+
+The notebook `janbartos/gpt-current-dup-i499-967d30b` did run to `complete`; it
+just was not accepted as a competition submission.
+
+## Candidate-cold batch 2: index 312 is stronger than 499
+
+A second candidate-cold screen found several stable indices faster than `499`.
+The best local result was index `312`:
+
+| index | candidate-cold posts | candidate-cold raw/s | median completion/eval tokens |
+| ---: | --- | ---: | --- |
+| `11565` | `8/8/8` | `57.478` | `245 / 1481` |
+| `499` | `8/8/8` | `58.905` | `239 / 1476` |
+| `5735` | `8/8/8` | `61.329` | `225 / 1461` |
+| `8325` | `8/8/8` | `61.267` | `221 / 1457` |
+| `148` | `8/8/8` | `61.147` | `227 / 1463` |
+| `312` | `8/8/8` | `61.483` | `217 / 1451` |
+
+Index `312` also passed production-path smoke:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=20.572217226028442
+```
+
+Prepared variant and notebook, not submitted due to quota:
+
+- `runs/variants/gpt-current-duplicate-i312-ab369f2/attack.py`
+- `runs/kaggle-gpt-current-dup-i312-ab369f2/gpt-current-dup-i312-ab369f2.ipynb`
+
+Next-reset rule: if GPT current-duplicate transfer remains worth testing, submit
+index `312` before index `499`, unless a larger candidate-cold scan finds a
+better stable index.
