@@ -372,3 +372,37 @@ attack_elapsed_s=20.846015453338623
 Decision: submit `current_duplicate` as a third GPT-only controlled hosted probe
 if quota permits. It should not be treated as a final mixed submission until its
 hosted score is known.
+
+### Current-family wording compression
+
+Artifact: `runs/tmp/sequence-arena-gpt-current-compression-screen-n3.json`
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate` | `8×3` | 1 | 386 | 61.545 | 2.092 | 232 | 8651 | 542 |
+| `current_nofinal_duplicate` | `6×3` | 1 | 290 | 52.264 | 1.837 | 204 | 7366 | 470 |
+| `current_compact_duplicate` | `8×3` | 1 | 386 | 57.094 | 2.250 | 264 | 8499 | 574 |
+| `current_direct_duplicate` | `7×3` | 1 | 338 | 39.860 | 3.039 | 366 | 8507 | 676 |
+| `current_minimal_duplicate` | `3×1, 4×2` | 2 | 180 | 29.588 | 2.074 | 262 | 4910 | 439 |
+| `current_task_short_duplicate` | `8×3` | 1 | 386 | 44.900 | 2.856 | 349 | 8459 | 659 |
+| `current_numbered_duplicate` | `8×3` | 1 | 386 | 44.480 | 2.785 | 332 | 8515 | 642 |
+
+Interpretation: do not shorten the current-template control wording. Removing
+the final-control phrase saves tokens but drops to K6. Other shortened variants
+either underfire or cause longer completions, so they lose raw/s despite shorter
+prompts.
+
+### Current-family URL surface
+
+Artifact: `runs/tmp/sequence-arena-gpt-current-urlstyle-screen-n5.json`
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate` | `8×5` | 1 | 642 | 61.811 | 2.084 | 232 | 8651 | 542 |
+| `current_original_custom_duplicate` | `8×5` | 1 | 642 | 60.543 | 2.102 | 236 | 8559 | 539 |
+| `current_original_bare_duplicate` | `0×5` | 0 | 0 | 0.000 | 0.242 | 29 | 903 | 30 |
+
+Interpretation: changing only current-template URLs from `http://...co` to
+`x://...` preserves K8 but does not improve speed at this sample size. Bare
+current labels fail immediately. Keep `current_original_custom_duplicate` as a
+possible diversity/probe option only; it is not better than `current_duplicate`.
