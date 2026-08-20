@@ -200,3 +200,31 @@ hosted-transfer problem.  If both fail, duplicate GPT K8 topology itself is
 likely not transferable.  If both work, prefer the faster or more stable hosted
 score and then test a combined submission only with separately proven Gemma
 changes.
+
+## Fourth controlled probe: Gemma r57 token-shaved K8-O
+
+Round 57 is the conservative token-shaved Gemma K8-O prompt documented in
+`docs/gemma_k8_luna/RESULTS.md`.  The pending `55648851` isolated Gemma probe
+uses the default `r53` prompt; `r57` is a distinct fast-row hypothesis, so it is
+worth a separate hosted check while quota is available.
+
+Fresh production-path smoke:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=109.66317772865295
+```
+
+Hosted submission:
+
+| submission ref | source ref | description | status at submit time |
+| --- | --- | --- | --- |
+| `55652559` | `32f9395` + `USE_GEMMA_K8_O=True`, `GEMMA_K8_O_VARIANT="r57"` | Gemma K8-O r57 isolated on safe GPT baseline | `PENDING` |
+
+Interpretation rule: compare `55652559` against `55648851`.  If both transfer,
+prefer the faster/higher hosted score.  If `r53` transfers but `r57` does not,
+keep the longer r53 scaffolding.  If neither transfers, keep Gemma K8-O off and
+inspect raw local failure modes before submitting more Gemma variants.

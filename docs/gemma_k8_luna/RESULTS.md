@@ -171,6 +171,13 @@ The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct pro
   lines reached only K1/K3/K6. The Round 57 control reproduced 2/2 K8. Conclusion:
   the remaining section labels and spacing are functional scaffolding, not safe
   prompt bloat.
+- 2026-08-20 hosted-transfer follow-up: the Round 57 prompt passed a fresh
+  production-path isolated smoke through `scripts/verify_fill.py` with
+  `use_gemma_k8_o=true`, `gemma_k8_o_variant="r57"`, `hard_n_cap=3`, and safe
+  GPT current-template defaults. Result: `candidates_returned=3`,
+  `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`,
+  `attack_elapsed_s=109.663`. It was submitted as hosted probe `55652559`
+  (`Gemma K8-O r57 isolated on safe GPT baseline 32f9395`) and is pending.
 
 ## Commands
 
