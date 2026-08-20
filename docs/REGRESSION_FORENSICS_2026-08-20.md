@@ -135,3 +135,22 @@ Interpretation rule: compare `55649067` against the `96.010` control and the
 does not hosted-transfer despite the local smoke.  If it lands near or above
 `96.010`, the local duplicate topology is viable and can later be combined only
 with a separately proven Gemma result.
+
+## Current wait gate
+
+As of the latest API poll, both controlled probes are pending:
+
+- `55648851`: Gemma K8-O isolated on restored GPT current baseline.
+- `55649067`: GPT duplicate K8 topology on restored safe baseline, Gemma off.
+
+Do not submit a third hosted variant until at least one of these completes.
+The next action depends on the first completed score:
+
+- `55648851 > 96.010`: Gemma K8-O transfers; keep it as a candidate fast-row
+  improvement, but still do not combine it with GPT duplicate K8 unless the GPT
+  probe also transfers.
+- `55648851 <= 96.010`: keep Gemma K8-O off by default.
+- `55649067 >= 96.010`: GPT duplicate topology is viable enough for a follow-up
+  combined or repeat/noise-check submission.
+- `55649067` near the `65-66` failures: duplicate GPT K8 does not hosted-transfer
+  and should stay experimental.
