@@ -156,3 +156,16 @@ late uniqueness preserved 40/40 exact K8 and improved raw/s by about 2.5% versus
 HTTP late-unique. It still does not beat the byte-identical duplicate K8 bank,
 but it is a better safety/diversity candidate if duplicate-cell topology fails
 to transfer hosted.
+
+### Custom-scheme late-unique n=100 scale check
+
+Artifact: `runs/tmp/sequence-arena-gpt-custom-late-unique-n100.json`
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | p90 s | Max s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_original_custom_late_unique` | 100 × 8 | 100 | 13000 | 63.210 | 2.057 | 2.117 | 2.250 | 233 | 8548 | 562 |
+
+Interpretation: the n=40 improvement did not scale into a clear win. The
+custom-scheme late-unique prompt remained 100/100 exact, but its `63.210 raw/s`
+was slightly below the prior HTTP late-unique n=100 run (`63.595 raw/s`). Keep it
+as a valid fallback/diversity variant, not as the promoted unique-cell bank.
