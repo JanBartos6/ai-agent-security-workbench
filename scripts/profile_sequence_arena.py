@@ -406,6 +406,12 @@ def _message_for_arm(attack: Any, arm: str, index: int, k: int, duplicate_index:
     if arm == "multi4_slot_duplicate":
         msg = k8_variant_message(attack, duplicate_index, k, "slotlabels")
         return (msg, msg, msg, msg)
+    if arm == "multi2_slot_nofinal_duplicate":
+        msg = k8_variant_message(attack, duplicate_index, k, "slotlabels_nofinal")
+        return (msg, msg)
+    if arm == "multi4_slot_nofinal_duplicate":
+        msg = k8_variant_message(attack, duplicate_index, k, "slotlabels_nofinal")
+        return (msg, msg, msg, msg)
     if arm == "multi2_slot_unique":
         return tuple(k8_variant_message(attack, index * 2 + j, k, "slotlabels") for j in range(2))
     if arm == "multi4_slot_unique":

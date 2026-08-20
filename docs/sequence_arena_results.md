@@ -169,3 +169,53 @@ Interpretation: the n=40 improvement did not scale into a clear win. The
 custom-scheme late-unique prompt remained 100/100 exact, but its `63.210 raw/s`
 was slightly below the prior HTTP late-unique n=100 run (`63.595 raw/s`). Keep it
 as a valid fallback/diversity variant, not as the promoted unique-cell bank.
+
+## 2026-08-20 — GPT multi-block duplicate economics
+
+Goal: test whether a single candidate can score more than K8 by concatenating
+multiple proven K8 prompt blocks. This only helps if the extra posts are cheaper
+than launching another candidate; otherwise it wastes replay budget.
+
+### Normal grouped run
+
+Artifact: `runs/tmp/sequence-arena-gpt-multiblock-duplicate-nofinal-n10.json`
+
+Command shape:
+
+```powershell
+$env:AICOMP_SDK_ROOT='G:\kaggle_competition\ai-agent-security-multi-step-tool-attacks'
+& 'G:\kaggle_competition\.venv\Scripts\python.exe' scripts\profile_sequence_arena.py `
+  --agent gpt_oss `
+  --model-path G:\kaggle_competition\models\gpt-oss-20b-Q4_K_M.gguf `
+  --gpu-layers -1 `
+  --tensor-split 0.57,0.43 `
+  --n 10 `
+  --order grouped `
+  --arms slot_duplicate,multi2_slot_duplicate,multi2_slot_nofinal_duplicate,multi4_slot_duplicate,multi4_slot_nofinal_duplicate `
+  --out runs\tmp\sequence-arena-gpt-multiblock-duplicate-nofinal-n10.json
+```
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | p90 s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate` | 10 × 8 | 1 | 1282 | 63.220 | 2.017 | 2.037 | 227 | 8732 | 543 |
+| `multi2_slot_duplicate` | 10 × 12 | 1 | 1922 | 59.580 | 3.218 | 3.275 | 350 | 16242 | 1009 |
+| `multi2_slot_nofinal_duplicate` | 10 × 16 | 1 | 2562 | 59.236 | 4.314 | 4.387 | 476 | 21120 | 1263 |
+| `multi4_slot_duplicate` | 1 × 18, 9 × 17 | 2 | 2740 | 55.630 | 4.906 | 4.948 | 513 | 29496 | 1652 |
+| `multi4_slot_nofinal_duplicate` | 10 × 22 | 1 | 3522 | 53.948 | 6.514 | 6.616 | 705 | 37569 | 2042 |
+
+### Candidate-cold sanity check
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-multiblock-duplicate-nofinal-candidate-cold-n10.json`
+
+| Arm | Posts | Unique cells | Batch raw | Raw/s | Median s | p90 s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `slot_duplicate` | 10 × 8 | 1 | 1282 | 55.988 | 2.285 | 2.310 | 237 | 8732 | 1486 |
+| `multi2_slot_nofinal_duplicate` | 10 × 16 | 1 | 2562 | 55.480 | 4.608 | 4.671 | 496 | 21120 | 2209 |
+
+Interpretation: repeating the K8 block inside one candidate is technically
+possible, but not economical. The no-final two-block form is reliable at 16/16
+posts, yet it falls below a single K8 block in both normal and candidate-cold
+tests. The four-block forms are worse: they either underfire or produce more
+posts with lower raw/s. This path should stay as evidence, not as a promoted
+submission strategy.
