@@ -367,6 +367,12 @@ def _repeat_to_cap_data_forge(url: str) -> str:
 
 def _message_for_arm(attack: Any, arm: str, index: int, k: int, duplicate_index: int) -> tuple[str, ...]:
     arm = arm.lower()
+    if arm.startswith("current_pool_i"):
+        raw = arm.removeprefix("current_pool_i")
+        indices = [int(part) for part in raw.split("_") if part]
+        if not indices:
+            raise ValueError(f"empty current_pool arm: {arm}")
+        return (k8_variant_message(attack, indices[index % len(indices)], k, "current"),)
     if arm.startswith("current_duplicate_i"):
         idx = int(arm.removeprefix("current_duplicate_i"))
         return (k8_variant_message(attack, idx, k, "current"),)

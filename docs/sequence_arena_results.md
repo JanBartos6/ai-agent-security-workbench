@@ -634,3 +634,26 @@ Interpretation: batch 4 found no better candidate than index `312`. It also
 found another non-transferable duplicate index, `522`, which underfired to K5
 candidate-cold. This reinforces the current rule: duplicate-index choice must be
 confirmed candidate-cold, not promoted from normal grouped timing alone.
+
+### Candidate-cold current-index pool vs single index
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-pool-vs-single-candidate-cold-n8.json`
+
+Goal: test whether mixing several stable current-bank K8 indices can recover
+enough unique-cell bonus to beat repeating the fastest known index (`312`).
+This stayed local-only because hosted Kaggle scores were known to be unavailable
+for several hours.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i312` | `8×8` | 1 | 1026 | 60.531 | 2.117 | 217.0 | 8640.0 | 1451.0 |
+| `current_pool_i312_8325` | `8×8` | 2 | 1028 | 59.765 | 2.155 | 219.0 | 8646.5 | 1454.0 |
+| `current_pool_i312_8325_5735` | `8×8` | 3 | 1030 | 59.555 | 2.165 | 221.0 | 8653.0 | 1457.0 |
+| `current_pool_i312_8325_5735_408_148` | `8×8` | 5 | 1034 | 58.873 | 2.183 | 222.5 | 8653.0 | 1457.5 |
+| `current_pool_i312_8325_5735_408_148_10535_1965_1561` | `8×8` | 8 | 1040 | 58.922 | 2.201 | 224.5 | 8646.5 | 1459.5 |
+
+Interpretation: all pool variants remained exact K8 candidate-cold, but the
+extra unique-cell bonus was too small to offset slower average decoding. The
+pure `312` duplicate arm remains the best local next-reset GPT candidate unless
+hosted transfer evidence says otherwise.

@@ -356,3 +356,8 @@ Local-only follow-up batch 4 did not change this choice.  Later current-bank
 indices all stayed below the `312` control, and index `522` underfired to K5 in
 candidate-cold mode.  Keep `312` as the preferred next-reset candidate unless a
 future candidate-cold screen beats it, not merely a grouped/cache-warm screen.
+
+A local-only pool-vs-single follow-up also did not change the choice: stable
+K8 pools using 2, 3, 5, or 8 current-bank indices all fired, but the added
+unique-cell bonus did not offset slower median decoding.  The pure `312`
+duplicate arm remained the best local candidate in that screen.
