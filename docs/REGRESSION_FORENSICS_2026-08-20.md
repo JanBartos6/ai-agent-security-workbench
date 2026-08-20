@@ -143,6 +143,11 @@ As of the latest API poll, both controlled probes are pending:
 - `55648851`: Gemma K8-O isolated on restored GPT current baseline.
 - `55649067`: GPT duplicate K8 topology on restored safe baseline, Gemma off.
 
+Backing notebook kernels for both probes report `COMPLETE` with no failure
+message (`janbartos/gemma-k8o-isolated-cd97a2e` and
+`janbartos/gpt-duplicate-safe-eca381f`).  The unresolved state is therefore the
+competition rerun/scoring queue, not notebook execution.
+
 Do not submit a third hosted variant until at least one of these completes.
 The next action depends on the first completed score:
 
