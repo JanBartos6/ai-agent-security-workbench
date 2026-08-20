@@ -65,3 +65,17 @@ baseline shape:
 Do not submit slot-label GPT defaults again. The next candidate submission should
 start from the restored `9aab298`-style GPT current-template path. Any Gemma K8-O
 test should change only the fast row while preserving the hosted-proven GPT row.
+
+## Follow-up isolated submission
+
+Submitted after restoring the baseline:
+
+| submission ref | commit | description | status at submit time |
+| --- | --- | --- | --- |
+| `55648851` | `cd97a2e` | Isolated Gemma K8-O on restored GPT current baseline | `PENDING` |
+
+This submission intentionally changes one production default from `eca381f`:
+`USE_GEMMA_K8_O=True`.  The GPT slow row remains on
+`SLOW_MULTIPOST_TEMPLATE="current"` with the hosted-proven current-template K8
+bank.  Interpret the score as a Gemma K8-O transfer test only; do not attribute
+the result to GPT slot-labels, which are not enabled in this commit.
