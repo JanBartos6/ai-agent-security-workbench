@@ -569,3 +569,68 @@ counts in this confirmation set.
 Decision: index `312` is the current preferred next-reset GPT current-duplicate
 probe, subject to hosted results showing the current-duplicate family is worth
 continuing.
+
+### Candidate-cold duplicate index batch 3
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-duplicate-index-candidate-cold-batch3-n3.json`
+
+Goal: continue local-only candidate-cold screening after the user clarified that
+hosted scores will not be available for roughly 10 hours. This batch tests the
+next current-template K8-bank indices against controls `312` and `11565`.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i312` | `8×3` | 386 | 62.205 | 2.066 | 217 | 8640 | 1451 |
+| `current_duplicate_i11565` | `8×3` | 386 | 57.221 | 2.237 | 245 | 8651 | 1481 |
+| `current_duplicate_i1561` | `8×3` | 386 | 60.052 | 2.144 | 231 | 8640 | 1465 |
+| `current_duplicate_i435` | `8×3` | 386 | 58.931 | 2.184 | 233 | 8640 | 1467 |
+| `current_duplicate_i2745` | `8×3` | 386 | 51.768 | 2.443 | 230 | 8640 | 1464 |
+| `current_duplicate_i9119` | `8×3` | 386 | 56.636 | 2.272 | 226 | 8655 | 1462 |
+| `current_duplicate_i1263` | `8×3` | 386 | 57.496 | 2.235 | 224 | 8655 | 1460 |
+| `current_duplicate_i10641` | `8×3` | 386 | 53.609 | 2.405 | 249 | 8640 | 1483 |
+| `current_duplicate_i45` | `8×3` | 386 | 55.899 | 2.309 | 232 | 8548 | 1451 |
+| `current_duplicate_i854` | `8×3` | 386 | 55.260 | 2.318 | 238 | 8640 | 1472 |
+| `current_duplicate_i1450` | `8×3` | 386 | 58.356 | 2.220 | 219 | 8640 | 1453 |
+| `current_duplicate_i1530` | `8×3` | 386 | 56.426 | 2.286 | 233 | 8640 | 1467 |
+| `current_duplicate_i759` | `8×3` | 386 | 55.231 | 2.302 | 241 | 8661 | 1478 |
+| `current_duplicate_i151` | `8×3` | 386 | 54.691 | 2.348 | 246 | 8640 | 1480 |
+| `current_duplicate_i9154` | `8×3` | 386 | 54.638 | 2.361 | 247 | 8640 | 1481 |
+| `current_duplicate_i3382` | `8×3` | 386 | 59.044 | 2.173 | 223 | 8640 | 1457 |
+
+Interpretation: batch 3 found no better candidate than index `312`. All tested
+indices remained exact K8, but the fastest new index (`1561`, `60.052 raw/s`)
+was below the in-run `312` control (`62.205 raw/s`). Keep `312` as the current
+preferred next-reset GPT current-duplicate index.
+
+### Candidate-cold duplicate index batch 4
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-duplicate-index-candidate-cold-batch4-n3.json`
+
+Goal: continue local-only duplicate-index screening while Kaggle scores are
+known to be unavailable for several hours. This batch tests later current-bank
+indices against control `312`.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i312` | `8×3` | 386 | 60.818 | 2.117 | 217 | 8640 | 1451 |
+| `current_duplicate_i398` | `8×3` | 386 | 57.280 | 2.242 | 240 | 8640 | 1474 |
+| `current_duplicate_i409` | `8×3` | 386 | 59.120 | 2.177 | 227 | 8640 | 1461 |
+| `current_duplicate_i669` | `8×3` | 386 | 58.655 | 2.185 | 233 | 8655 | 1469 |
+| `current_duplicate_i1594` | `8×3` | 386 | 59.408 | 2.158 | 227 | 8651 | 1463 |
+| `current_duplicate_i7604` | `8×3` | 386 | 55.244 | 2.339 | 253 | 8652 | 1489 |
+| `current_duplicate_i29` | `8×3` | 386 | 56.098 | 2.280 | 246 | 8548 | 1465 |
+| `current_duplicate_i11780` | `8×3` | 386 | 48.852 | 2.515 | 245 | 8655 | 1481 |
+| `current_duplicate_i9951` | `8×3` | 386 | 47.927 | 2.718 | 241 | 8640 | 1475 |
+| `current_duplicate_i475` | `8×3` | 386 | 59.315 | 2.175 | 223 | 8686 | 1465 |
+| `current_duplicate_i522` | `5×3` | 242 | 46.840 | 1.717 | 168 | 6216 | 1314 |
+| `current_duplicate_i11156` | `8×3` | 386 | 55.291 | 2.318 | 246 | 8640 | 1480 |
+| `current_duplicate_i8874` | `8×3` | 386 | 59.347 | 2.166 | 224 | 8640 | 1458 |
+| `current_duplicate_i1130` | `8×3` | 386 | 57.996 | 2.222 | 231 | 8660 | 1468 |
+| `current_duplicate_i237` | `8×3` | 386 | 56.248 | 2.283 | 242 | 8640 | 1476 |
+
+Interpretation: batch 4 found no better candidate than index `312`. It also
+found another non-transferable duplicate index, `522`, which underfired to K5
+candidate-cold. This reinforces the current rule: duplicate-index choice must be
+confirmed candidate-cold, not promoted from normal grouped timing alone.

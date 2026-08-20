@@ -351,3 +351,8 @@ GPT current-duplicate candidate:
 
 Index `312` is therefore still the preferred next-reset GPT current-duplicate
 probe if hosted results justify continuing this family.
+
+Local-only follow-up batch 4 did not change this choice.  Later current-bank
+indices all stayed below the `312` control, and index `522` underfired to K5 in
+candidate-cold mode.  Keep `312` as the preferred next-reset candidate unless a
+future candidate-cold screen beats it, not merely a grouped/cache-warm screen.
