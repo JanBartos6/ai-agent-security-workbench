@@ -52,6 +52,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_ROOT = ROOT / "ai-agent-security-multi-step-tool-attacks"
+if not SDK_ROOT.exists() and os.environ.get("AICOMP_SDK_ROOT"):
+    SDK_ROOT = Path(os.environ["AICOMP_SDK_ROOT"]).resolve()
 sys.dont_write_bytecode = True
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))

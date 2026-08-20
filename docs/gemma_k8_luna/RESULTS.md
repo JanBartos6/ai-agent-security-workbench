@@ -1,6 +1,6 @@
 # Gemma K8 Luna Results
 
-Date: 2026-08-19
+Date: 2026-08-20
 
 ## Summary
 
@@ -10,6 +10,9 @@ First verified prompt: `k8_gen8_suffix_no_json_at_eight_selected` in `docs/gemma
 
 Current fastest prompt: `k8_r53_url_a_O_selected` in `docs/gemma_k8_luna/round53a_url_a_O_selected.jsonl`.
 
+Current token-shaving candidate: `r57_no_never_final_selected` in
+`docs/gemma_k8_luna/round57_no_never_final_selected.jsonl`.
+
 Verification runs:
 
 - first K8: `runs/gemma_k8_luna/round30c_no_json_selected_40.json`
@@ -17,6 +20,9 @@ Verification runs:
 - lowest-token K8: `runs/gemma_k8_luna/round35d_nj_data_selected_warm_40_aggregated.json`
 - first local raw/s gate pass: `runs/gemma_k8_luna/round47a_OK_url_a_selected_40.json`
 - fastest K8 and duplicate-cell-adjusted gate pass: `runs/gemma_k8_luna/round53a_url_a_O_selected_40.json`
+- Round 57 token probe: `runs/tmp/gemma-lab/round57_token_probe_repeat2.json`
+- Round 57 selected 20-row check: `runs/tmp/gemma-lab/round57_no_never_final_selected_20.json`
+- Round 57 selected no-warmup check: `runs/tmp/gemma-lab/round57_no_never_final_selected_no_warmup_3.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -45,9 +51,22 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 | K8 lowest-token (`__NJ_data`) | 40 | `{8: 40}` | `{130: 40}` | 5200 | 755.550s | 6.882 | 6.883 | 18.887s | 10766 / 289 |
 | K8 `OK` + no-scheme `a` | 40 | `{8: 40}` | `{130: 40}` | 5200 | 663.784s | 7.834 | 7.835 | 16.644s | 10548 / 248 |
 | K8 `O` + no-scheme `a` | 40 | `{8: 40}` | `{130: 40}` | 5200 | 606.564s | 8.573 | 8.574 | 15.133s | 10503 / 236 |
+| K8 Round 57, removed final-text prohibition | 20 | `{8: 20}` | `{130: 20}` | 2600 | 299.508s | 8.681 | 8.682 | 14.944s | 10471 / 235 |
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
 On this local run, `O` + no-scheme `a` has 110.7% of the K1 aggregate raw/s. The same-score-cell adjustment still leaves it above K1: the 40 rows have one unique score cell, so the adjusted raw is `40 * 8 * 16 + 2 = 5122`, and `5122 / 606.564s = 8.444 raw/s`.
+
+Round 57 removed only the phrase `Never final text.` from the Round 53 prompt.
+In the selected 20-row check it remained 20/20 exact K8 with invariant
+`10471 / 235 / 10706` prompt/completion/total tokens, saving 32 prompt tokens,
+1 completion token, and 33 total tokens versus Round 53. Duplicate-cell-adjusted
+raw/s for that 20-row run is `(20 * 8 * 16 + 2) / 299.508 = 8.554`. A separate
+3-row no-warmup check also stayed 3/3 exact K8, although the first cold row was
+slow from model state (`25.937s`).
+
+Treat Round 57 as a promising replacement candidate, not yet as the integrated
+default: Round 53 still has the deeper 207-position duplicate-bank validation
+and is the prompt used in the pending hosted submissions.
 
 The Round 35 `__NJ_data` result is lower-token but not a fair same-process raw/s comparison: same-process repeat mode crashed in this local session before row output, so the 40-row measurement was aggregated from 40 separate warmup-normal one-row lab invocations. The row-level `elapsed_s` field still excludes model load and warmup, but the run modality is different enough that the raw/s number should be treated as provisional. The token result is clear: median completion tokens dropped from 302 to 289 and total tokens from 11126 to 11055 while preserving 40/40 K8 under the warmup-normal one-row condition.
 
@@ -129,6 +148,12 @@ The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct pro
 - Round 53 replaced `OK` with `O` on no-scheme `url:"a"`: 40/40 K8, aggregate 8.573 raw/s, duplicate-cell-adjusted 8.444 raw/s.
 - Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt, so the current integration uses a live-validated Gemma K8-O head plus a 500-entry duplicate bank after fast-row classification.
 - Round 56 began a direct 500-repeat duplicate-bank validation and stopped after 207 entries by operator decision. Tested bank positions 1-207 were 207/207 full K8 with no errors and no token-count variation. Bank positions 208-500 remain byte-identical inferred-valid duplicates.
+- Round 57 tested eight conservative token-shaving variants around the Round 53
+  prompt. Aggressive short rules collapsed to K1; removing the escaped-newline
+  anchor or changing the thought-prefix layout failed at K5/K6. The only useful
+  candidate removed `Never final text.`: it passed 2/2 in the mixed probe, then
+  20/20 isolated warmup-normal and 3/3 no-warmup, with token counts
+  `10471 / 235 / 10706`.
 
 ## Commands
 
