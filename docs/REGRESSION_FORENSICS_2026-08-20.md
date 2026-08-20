@@ -107,3 +107,21 @@ This queued GPT duplicate-topology variant starts from the restored safe
 baseline (`eca381f`) and does not include Gemma K8-O.  Submit it only after the
 Gemma-isolation result is known, unless deliberately choosing to spend quota on
 a separate GPT-only hosted topology probe.
+
+Local smoke evidence for the generated variant:
+
+```powershell
+G:\kaggle_competition\.venv\Scripts\python.exe scripts\verify_fill.py `
+  --attack runs\variants\gpt-duplicate-on-safe-baseline\attack.py `
+  --agent gpt_oss `
+  --model-path G:\kaggle_competition\models\gpt-oss-20b-Q4_K_M.gguf `
+  --gpu-layers -1 `
+  --tensor-split 0.57,0.43 `
+  --budget-s 90 `
+  --attack-config-file runs\tmp\verify-fill-gpt-duplicate-safe-config.json
+```
+
+Result: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
+`score_normalized=1.93`, `attack_elapsed_s=23.268`.  The raw score matches
+`3 * 8 * 16 + 2`, confirming the generated variant enters the duplicate GPT K8
+path locally.  This is still not hosted evidence.
