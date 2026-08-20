@@ -262,3 +262,30 @@ Interpretation rule: compare `55652649` against `55652403`.  If both transfer,
 prefer index `745`; if only `11565` transfers, duplicate-index stability matters
 more than local speed and index `745` should not be promoted.  If neither
 transfers, keep GPT duplicate K8 off.
+
+## Post-submit hardening: index 745 is cache-sensitive
+
+After submitting `55652649`, a candidate-cold local run contradicted the grouped
+index screen:
+
+| index | candidate-cold posts | candidate-cold raw/s | interpretation |
+| ---: | --- | ---: | --- |
+| `11565` | `8/8/8/8/8` | `57.594` | stable control |
+| `745` | `5/5/5/5/5` | `48.188` | grouped-only false lead |
+| `499` | `8/8/8/8/8` | `58.393` | safer optimized index |
+| `938` | `8/8/8/8/8` | `55.323` | stable but slower |
+
+This means `55652649` should be treated as a risky probe, not the preferred
+optimized variant.  The next safer GPT current-duplicate candidate is index
+`499`, which also passed a production-path smoke:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=20.329851388931274
+```
+
+Prepared variant, not submitted in this note:
+`runs/variants/gpt-current-duplicate-i499-967d30b/attack.py`.

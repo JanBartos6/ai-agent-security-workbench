@@ -450,3 +450,42 @@ attack_elapsed_s=19.388829469680786
 Decision: submit index `745` as a GPT-only current-template duplicate hosted
 probe. It is a strict local improvement over the earlier current-duplicate
 probe, but still requires hosted transfer evidence before combining.
+
+### Candidate-cold correction for duplicate index choice
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-duplicate-index-candidate-cold-n5.json`
+
+Goal: rerun the best grouped duplicate indices with `--candidate-cold`, which is
+closer to replay economics because it removes cross-candidate cache effects.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i11565` | `8×5` | 642 | 57.594 | 2.228 | 245 | 8651 | 1481 |
+| `current_duplicate_i745` | `5×5` | 402 | 48.188 | 1.669 | 174 | 6216 | 1320 |
+| `current_duplicate_i499` | `8×5` | 642 | 58.393 | 2.196 | 239 | 8661 | 1476 |
+| `current_duplicate_i938` | `8×5` | 642 | 55.323 | 2.323 | 255 | 8640 | 1489 |
+
+Interpretation: index `745` is a cache-sensitive false lead in local grouped
+mode; it underfires to K5 candidate-cold and should not be promoted unless
+hosted surprisingly contradicts local candidate-cold evidence. Index `499` is
+the safer optimized current-template duplicate index: it remains 5/5 K8
+candidate-cold and is slightly faster than `11565`.
+
+Prepared next-reset variant:
+`runs/variants/gpt-current-duplicate-i499-967d30b/attack.py` with
+`GPT_DUPLICATE_K8_TEMPLATE="current"`, `GPT_DUPLICATE_K8_BANK_INDEX=499`,
+`USE_GEMMA_K8_O=False`.
+
+Production-path smoke:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=20.329851388931274
+```
+
+Decision: if another hosted slot is available and `current_duplicate` is still
+worth probing, submit index `499` before any further grouped-only winner.
