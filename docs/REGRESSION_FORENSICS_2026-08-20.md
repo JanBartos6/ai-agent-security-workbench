@@ -79,3 +79,31 @@ This submission intentionally changes one production default from `eca381f`:
 `SLOW_MULTIPOST_TEMPLATE="current"` with the hosted-proven current-template K8
 bank.  Interpret the score as a Gemma K8-O transfer test only; do not attribute
 the result to GPT slot-labels, which are not enabled in this commit.
+
+## Submission safety guardrail
+
+Use `scripts/build_attack_variant.py` for future hosted variants instead of
+hand-editing production defaults in `attacks/05_validation_fill/attack.py`.
+The helper reads an attack file from an explicit git ref, applies named constant
+overrides, asserts the intended final constants, writes the generated attack
+under ignored `runs/`, and records a manifest next to it.
+
+Prepared but not submitted while `55648851` is pending:
+
+```powershell
+G:\kaggle_competition\.venv\Scripts\python.exe scripts\build_attack_variant.py `
+  --git-ref eca381f `
+  --source attacks/05_validation_fill/attack.py `
+  --out runs/variants/gpt-duplicate-on-safe-baseline/attack.py `
+  --set USE_GPT_DUPLICATE_K8=True `
+  --expect SLOW_MULTIPOST_TEMPLATE='"current"' `
+  --expect USE_GEMMA_K8_O=False `
+  --expect USE_GPT_DUPLICATE_K8=True `
+  --expect GPT_DUPLICATE_K8_BANK_N=500 `
+  --expect GPT_DUPLICATE_K8_BANK_INDEX=11565
+```
+
+This queued GPT duplicate-topology variant starts from the restored safe
+baseline (`eca381f`) and does not include Gemma K8-O.  Submit it only after the
+Gemma-isolation result is known, unless deliberately choosing to spend quota on
+a separate GPT-only hosted topology probe.
