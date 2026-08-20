@@ -371,6 +371,10 @@ def _message_for_arm(attack: Any, arm: str, index: int, k: int, duplicate_index:
         return (k8_variant_message(attack, index, k, "slotlabels"),)
     if arm == "slot_duplicate":
         return (k8_variant_message(attack, duplicate_index, k, "slotlabels"),)
+    if arm == "current_unique":
+        return (k8_variant_message(attack, index, k, "current"),)
+    if arm == "current_duplicate":
+        return (k8_variant_message(attack, duplicate_index, k, "current"),)
     if arm == "slot_late_unique":
         return (_late_unique_slotlabels(index, k),)
     if arm == "slot_compact_duplicate":

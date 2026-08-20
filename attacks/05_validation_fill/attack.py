@@ -90,6 +90,7 @@ GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K
 USE_GPT_DUPLICATE_K8 = False  # experimental: validate/pad one GPT slot K8 prompt
 GPT_DUPLICATE_K8_BANK_N = 500
 GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
+GPT_DUPLICATE_K8_TEMPLATE = "slotlabels"  # current is the hosted-proven prompt family
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
@@ -458,6 +459,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 GPT_DUPLICATE_K8_BANK_INDEX,
             )
         )
+        gpt_duplicate_k8_template = str(
+            self.config.get("gpt_duplicate_k8_template", GPT_DUPLICATE_K8_TEMPLATE)
+        )
         replay_safe_sizing = bool(
             self.config.get("replay_safe_sizing", REPLAY_SAFE_SIZING)
         )
@@ -600,6 +604,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                             k8_tail_trim_mult=k8_tail_trim_mult,
                             bank_n=gpt_duplicate_k8_bank_n,
                             bank_index=gpt_duplicate_k8_bank_index,
+                            template=gpt_duplicate_k8_template,
                         )
                     if use_gemma_k8_o and chosen_template != frame_template and hops >= 8:
                         return self._fill_gemma_k8_o(
@@ -721,17 +726,21 @@ class AttackAlgorithm(AttackAlgorithmBase):
         k8_tail_trim_mult: float,
         bank_n: int,
         bank_index: int,
+        template: str,
     ) -> list[AttackCandidate]:
         """Slow-row GPT duplicate K8 topology probe.
 
         The ordinary GPT K8 bank intentionally skips exact duplicate messages.
         This path does the opposite: after latency classification proves we are
-        on the slow/Harmony row, validate one locally proven slot-label K8 prompt
-        repeatedly, then pad with that exact same message.  It directly tests
-        whether the local duplicate-prefix advantage transfers to hosted replay.
+        on the slow/Harmony row, validate one locally proven K8 prompt repeatedly,
+        then pad with that exact same message.  ``template`` lets hosted probes
+        compare the slot-label prompt family against the current-template family
+        without changing the safe default path.
         """
         target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
-        msg = _slot_plan_msg(int(bank_index), 8)
+        template_key = str(template or "slotlabels").strip().lower()
+        bank_code = "S" if template_key in {"slotlabels", "slot", "s"} else "C"
+        msg = _banked_k8_msg((bank_code, int(bank_index)), 8)
         kept: list[tuple[float, str]] = []
         kept_elapsed: list[float] = []
         slowest = max(float(seed_slowest), LAT_FLOOR_S)

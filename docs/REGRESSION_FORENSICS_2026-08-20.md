@@ -159,3 +159,31 @@ The next action depends on the first completed score:
   combined or repeat/noise-check submission.
 - `55649067` near the `65-66` failures: duplicate GPT K8 does not hosted-transfer
   and should stay experimental.
+
+## Third-probe wait-gate override
+
+The earlier wait gate was conservative because hosted submissions are scarce and
+the two pending probes already isolate the main Gemma-vs-GPT question.  The user
+later clarified that quota was not tight before reset, so a third controlled
+probe is justified if it tests a distinct hypothesis rather than mixing changes.
+
+New local evidence from `runs/tmp/sequence-arena-gpt-current-vs-slot-n10.json`:
+
+| arm | hosted relevance | local result |
+| --- | --- | --- |
+| `slot_duplicate` | same topology as `55649067`, but prompt family already failed once when used as GPT default | `10/10` K8, `62.262 raw/s` |
+| `current_duplicate` | duplicate topology, but using the hosted-proven current-template prompt family | `10/10` K8, `61.491 raw/s` |
+
+Production-path smoke for the generated current-template duplicate variant:
+
+```text
+candidates_returned=3
+unique_cells=1
+score_raw=386.0
+score_normalized=1.9300000000000002
+attack_elapsed_s=20.846015453338623
+```
+
+Interpretation: this is still a GPT-only probe with Gemma off, not a final mixed
+submission. It tests whether the hosted failure is specific to slot-label prompt
+shape rather than duplicate K8 topology itself.
