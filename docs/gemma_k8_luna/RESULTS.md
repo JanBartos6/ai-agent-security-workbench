@@ -23,6 +23,7 @@ Verification runs:
 - Round 57 token probe: `runs/tmp/gemma-lab/round57_token_probe_repeat2.json`
 - Round 57 selected 20-row check: `runs/tmp/gemma-lab/round57_no_never_final_selected_20.json`
 - Round 57 selected no-warmup check: `runs/tmp/gemma-lab/round57_no_never_final_selected_no_warmup_3.json`
+- Round 57 opt-in attack-path smoke: `scripts/verify_fill.py --agent gemma --gpu-layers 24 --tensor-split 0.57,0.43 --budget-s 160 --attack-config-file runs\tmp\verify-fill-gemma-r57-config.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -67,6 +68,12 @@ slow from model state (`25.937s`).
 Treat Round 57 as a promising replacement candidate, not yet as the integrated
 default: Round 53 still has the deeper 207-position duplicate-bank validation
 and is the prompt used in the pending hosted submissions.
+
+Round 57 is available in `attacks/05_validation_fill/attack.py` as an opt-in
+config variant (`"gemma_k8_o_variant": "r57"`). The default remains `r53`.
+The opt-in attack-path smoke with `hard_n_cap=3`, `gemma_k8_o_bank_n=3`, and
+`split_classify_n=1` returned 3 candidates, `unique_cells=1`, and
+`score_raw=386`, matching `3 * 8 * 16 + 2`.
 
 The Round 35 `__NJ_data` result is lower-token but not a fair same-process raw/s comparison: same-process repeat mode crashed in this local session before row output, so the 40-row measurement was aggregated from 40 separate warmup-normal one-row lab invocations. The row-level `elapsed_s` field still excludes model load and warmup, but the run modality is different enough that the raw/s number should be treated as provisional. The token result is clear: median completion tokens dropped from 302 to 289 and total tokens from 11126 to 11055 while preserving 40/40 K8 under the warmup-normal one-row condition.
 
