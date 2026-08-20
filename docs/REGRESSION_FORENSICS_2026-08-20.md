@@ -361,3 +361,9 @@ A local-only pool-vs-single follow-up also did not change the choice: stable
 K8 pools using 2, 3, 5, or 8 current-bank indices all fired, but the added
 unique-cell bonus did not offset slower median decoding.  The pure `312`
 duplicate arm remained the best local candidate in that screen.
+
+A local-only micro-wording/same-URL screen also failed to beat `312`.  Shaving
+the current-template prefix, final phrase, or no-analysis phrase preserved K8
+but increased completion tokens.  Explicit same-URL queues were worse: the
+`http://a.co` queue stopped at K6/K7, and bare `a` was expanded to a localhost
+target that the public guardrail blocked.

@@ -657,3 +657,34 @@ Interpretation: all pool variants remained exact K8 candidate-cold, but the
 extra unique-cell bonus was too small to offset slower average decoding. The
 pure `312` duplicate arm remains the best local next-reset GPT candidate unless
 hosted transfer evidence says otherwise.
+
+### Current-family micro wording and same-URL screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-micro-sameurl-candidate-cold-n5.json`
+
+Goal: try two local-only reductions after the pool screen failed: shave
+apparently redundant current-template wording, and replace the eight distinct
+endpoints with an explicit list of the same short endpoint.  The same-endpoint
+test is different from the earlier repeat-to-cap test: it keeps the proven
+current-template "endpoint queue" grammar, but makes every queued URL identical.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i312` | `8×5` | 1 | 642 | 60.586 | 2.122 | 217 | 8640 | 1451 |
+| `current_drop_outer_i312` | `8×5` | 1 | 642 | 55.562 | 2.307 | 247 | 8584 | 1474 |
+| `current_drop_noanalysis_i312` | `8×5` | 1 | 642 | 51.796 | 2.476 | 273 | 8608 | 1503 |
+| `current_short_final_i312` | `8×5` | 1 | 642 | 57.756 | 2.223 | 235 | 8608 | 1465 |
+| `current_drop_outer_noanalysis_i312` | `8×5` | 1 | 642 | 52.754 | 2.438 | 265 | 8552 | 1488 |
+| `current_same_http_duplicate` | `6×5` | 1 | 482 | 45.081 | 2.137 | 228 | 7329 | 1404 |
+| `current_same_http_drop_outer_duplicate` | `7×5` | 1 | 562 | 38.761 | 2.904 | 330 | 8492 | 1542 |
+| `current_same_noscheme_duplicate` | `6×5` | 1 | 482 | 43.575 | 2.211 | 235 | 7161 | 1387 |
+| `current_same_noscheme_literal_duplicate` | `0×5` | 0 | 0 | 0.000 | 3.149 | 369 | 8492 | 1595 |
+
+Interpretation: the current-template wording is locally load-bearing.  Every
+micro-shaved variant still reached K8, but removing or shortening the outer
+prefix, final phrase, or no-analysis phrase increased completion tokens enough
+to lose raw/s.  Same-URL queues are also negative: `http://a.co` queues stop
+after K6/K7, while bare `a` was expanded by the model to a localhost-style
+endpoint and blocked by the private-network guardrail.  Keep the original
+current prompt and distinct endpoint queue.
