@@ -66,12 +66,14 @@ raw/s for that 20-row run is `(20 * 8 * 16 + 2) / 299.508 = 8.554`. A separate
 3-row no-warmup check also stayed 3/3 exact K8, although the first cold row was
 slow from model state (`25.937s`).
 
-Treat Round 57 as a promising replacement candidate, not yet as the integrated
-default: Round 53 still has the deeper 207-position duplicate-bank validation
-and is the prompt used in the pending hosted submissions.
+Treat Round 57 as a promising replacement candidate, not as the integrated
+default: Round 53 still has the deeper 207-position duplicate-bank validation,
+but the hosted submissions that included Gemma K8-O also included the now-failed
+GPT slot-label default, so Gemma transfer is still not isolated.
 
 Round 57 is available in `attacks/05_validation_fill/attack.py` as an opt-in
-config variant (`"gemma_k8_o_variant": "r57"`). The default remains `r53`.
+config variant (`"gemma_k8_o_variant": "r57"`). Gemma K8-O itself is also
+opt-in; the production default keeps the hosted-proven Gemma K1 path.
 The opt-in attack-path smoke with `hard_n_cap=3`, `gemma_k8_o_bank_n=3`, and
 `split_classify_n=1` returned 3 candidates, `unique_cells=1`, and
 `score_raw=386`, matching `3 * 8 * 16 + 2`.
@@ -128,7 +130,7 @@ The opt-in mapping-history control still confirms that diagnosis, but the Round 
 
 The previous best public-SDK multi-message fallback remains `k6_exact_then_two_k1_rescues`: one exact K6 message followed by two ordinary one-shot rescue messages. It reached exactly eight successful posts/raw 130 in 10/10 local samples with median elapsed 19.045s and median prompt/completion tokens 15599 / 268. That is now secondary because Round 30c achieved true one-message K8.
 
-The current attack integration uses `USE_GEMMA_K8_O=True`: after latency classification identifies the fast row, it live-validates Gemma K8-O candidates under the attack-generation budget, applies the same `K8_TAIL_TRIM_MULT=1.30` median tail trim to full-K8 traces, and pads the replay list to `GEMMA_K8_O_BANK_N=500` with the same locally verified duplicate prompt. A 3-candidate bank-path smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`.
+The attack integration has an opt-in `USE_GEMMA_K8_O` path: after latency classification identifies the fast row, it can live-validate Gemma K8-O candidates under the attack-generation budget, apply the same `K8_TAIL_TRIM_MULT=1.30` median tail trim to full-K8 traces, and pad the replay list to `GEMMA_K8_O_BANK_N=500` with the same locally verified duplicate prompt. A 3-candidate bank-path smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. This path is no longer default after the 65-point hosted regressions; it must be isolated in a future submission only after restoring the GPT row to the 96.010 baseline.
 
 The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct prompt variants. The explicitly replay-tested positions are bank entries 1-207. The Round 56 prefix validation was stopped at 207/500 after every observed replay scored full K8: `raw_score_est={130: 207}`, successful `http.post` events `{8: 207}`, predicates `{8: 207}`, errors `{None: 207}`, invariant token counts `10503 prompt / 236 completion / 10739 total`, median elapsed `15.129s`, p90 `16.162s`, and max `16.575s`. Entries 208-500 are byte-identical copies of the same prompt and are classified valid by duplication, not by separate replay. Hosted verification is still required before treating the leaderboard transfer as proven.
 
@@ -154,7 +156,7 @@ The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct pro
 - Round 47 combined `OK` with no-scheme `url:"a"`: 40/40 K8, 7.834 raw/s, but duplicate-cell-adjusted 7.716 raw/s was still slightly below K1.
 - Rounds 49-52 checked production-safe URL diversity. Candidate-specific full URLs, custom schemes, one-letter HTTP domains other than `a.co`, and `a.<tld>` variants were unstable or too slow.
 - Round 53 replaced `OK` with `O` on no-scheme `url:"a"`: 40/40 K8, aggregate 8.573 raw/s, duplicate-cell-adjusted 8.444 raw/s.
-- Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt, so the current integration uses a live-validated Gemma K8-O head plus a 500-entry duplicate bank after fast-row classification.
+- Rounds 54-55 checked message/URL variation for production fill. Other no-scheme labels were mixed, and adding prompt IDs slowed the candidate too much. Duplicate candidates are accepted by the gateway, and duplicate-cell-adjusted scoring remains above K1 for the `O` prompt locally, so the integration keeps a live-validated Gemma K8-O head plus a 500-entry duplicate bank as an opt-in fast-row path.
 - Round 56 began a direct 500-repeat duplicate-bank validation and stopped after 207 entries by operator decision. Tested bank positions 1-207 were 207/207 full K8 with no errors and no token-count variation. Bank positions 208-500 remain byte-identical inferred-valid duplicates.
 - Round 57 tested eight conservative token-shaving variants around the Round 53
   prompt. Aggressive short rules collapsed to K1; removing the escaped-newline
