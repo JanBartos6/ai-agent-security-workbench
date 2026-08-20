@@ -333,3 +333,21 @@ Prepared variant and notebook, not submitted due to quota:
 Next-reset rule: if GPT current-duplicate transfer remains worth testing, submit
 index `312` before index `499`, unless a larger candidate-cold scan finds a
 better stable index.
+
+## Candidate-cold confirmation: keep index 312 as next-reset choice
+
+A top-index confirmation run reinforced index `312` as the current best local
+GPT current-duplicate candidate:
+
+| index | candidate-cold posts | candidate-cold raw/s | median completion/eval tokens |
+| ---: | --- | ---: | --- |
+| `11565` | `8/8/8/8/8` | `57.208` | `245 / 1481` |
+| `499` | `8/8/8/8/8` | `58.190` | `239 / 1476` |
+| `312` | `8/8/8/8/8` | `62.382` | `217 / 1451` |
+| `8325` | `8/8/8/8/8` | `61.684` | `221 / 1457` |
+| `5735` | `8/8/8/8/8` | `60.841` | `225 / 1461` |
+| `408` | `8/8/8/8/8` | `60.793` | `224 / 1458` |
+| `148` | `8/8/8/8/8` | `60.254` | `227 / 1463` |
+
+Index `312` is therefore still the preferred next-reset GPT current-duplicate
+probe if hosted results justify continuing this family.

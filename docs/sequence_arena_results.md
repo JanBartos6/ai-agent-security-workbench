@@ -541,3 +541,31 @@ was exhausted:
 Decision: after reset, if GPT current-duplicate still looks viable from hosted
 scores, submit index `312` before index `499` unless a larger candidate-cold
 scan finds a stronger stable index.
+
+### Candidate-cold top-index confirmation
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-current-duplicate-index-candidate-cold-confirm-n5.json`
+
+Goal: confirm the leading batch-2 indices against controls with a larger
+candidate-cold sample before promoting any next-reset variant.
+
+| Arm | Posts distribution | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i11565` | `8×5` | 642 | 57.208 | 2.227 | 245 | 8651 | 1481 |
+| `current_duplicate_i499` | `8×5` | 642 | 58.190 | 2.190 | 239 | 8661 | 1476 |
+| `current_duplicate_i312` | `8×5` | 642 | 62.382 | 2.055 | 217 | 8640 | 1451 |
+| `current_duplicate_i5735` | `8×5` | 642 | 60.841 | 2.108 | 225 | 8655 | 1461 |
+| `current_duplicate_i8325` | `8×5` | 642 | 61.684 | 2.082 | 221 | 8653 | 1457 |
+| `current_duplicate_i148` | `8×5` | 642 | 60.254 | 2.124 | 227 | 8653 | 1463 |
+| `current_duplicate_i408` | `8×5` | 642 | 60.793 | 2.116 | 224 | 8640 | 1458 |
+
+Interpretation: index `312` remains the best stable local candidate after
+candidate-cold confirmation. It improves local candidate-cold raw/s by about
+8.9% versus submitted control index `11565` and about 7.2% versus prepared index
+`499`, while keeping 5/5 exact K8 and the lowest median completion/eval-token
+counts in this confirmation set.
+
+Decision: index `312` is the current preferred next-reset GPT current-duplicate
+probe, subject to hosted results showing the current-duplicate family is worth
+continuing.
