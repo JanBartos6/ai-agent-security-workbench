@@ -71,6 +71,30 @@ default: Round 53 still has the deeper 207-position duplicate-bank validation,
 but the hosted submissions that included Gemma K8-O also included the now-failed
 GPT slot-label default, so Gemma transfer is still not isolated.
 
+### Token-informed micro-compression screen
+
+Artifact:
+`runs/tmp/sequence-arena-gemma-token-compression-candidate-cold-n2.json`
+
+Goal: test whether the remaining Gemma K8-O anchor can be shortened.  Gemma
+already uses the exact same one-token URL `a` on all eight hops; it does not
+append numbers or vary the URL.  The tested micro-variants instead tried the
+Round 57 prompt, replacing literal `\nO` with an actual newline before `O`,
+removing the `__` suffix, or doing both.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gemma_k8_o_duplicate` | `8×2` | 1 | 258 | 6.294 | 20.496 | 238.0 | 10503.0 | 1694.0 |
+| `gemma_k8_o_r57_duplicate` | `8×2` | 1 | 258 | 6.612 | 19.510 | 235.0 | 10471.0 | 1687.0 |
+| `gemma_k8_o_r57_actual_newline_duplicate` | `7×2` | 1 | 226 | 5.776 | 19.564 | 239.0 | 10487.0 | 1699.0 |
+| `gemma_k8_o_r57_no_suffix_duplicate` | `7×2` | 1 | 226 | 6.072 | 18.611 | 223.0 | 10427.0 | 1666.0 |
+| `gemma_k8_o_r57_no_suffix_actual_newline_duplicate` | `6×2` | 1 | 194 | 5.540 | 17.509 | 218.0 | 9022.0 | 1641.0 |
+
+Interpretation: the extra-looking anchor bytes are load-bearing.  Literal `\nO`
+is one token longer than an actual newline plus `O`, and `__` costs tokens, but
+removing either piece broke exact K8.  The only compressed form in this screen
+that preserved K8 was the existing Round 57 prompt.
+
 Round 57 is available in `attacks/05_validation_fill/attack.py` as an opt-in
 config variant (`"gemma_k8_o_variant": "r57"`). Gemma K8-O itself is also
 opt-in; the production default keeps the hosted-proven Gemma K1 path.

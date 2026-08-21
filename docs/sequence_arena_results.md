@@ -688,3 +688,28 @@ to lose raw/s.  Same-URL queues are also negative: `http://a.co` queues stop
 after K6/K7, while bare `a` was expanded by the model to a localhost-style
 endpoint and blocked by the private-network guardrail.  Keep the original
 current prompt and distinct endpoint queue.
+
+### Token-informed URL compression screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-token-url-compression-candidate-cold-n5.json`
+
+Goal: test the user's tokenizer hypothesis directly.  The GPT tokenizer encodes
+`http://sa3.co` as five tokens but `http://1.co`, `http://a.co`, and early
+two-letter labels as four tokens, so these arms should save about one URL token
+per listed endpoint in the prompt and generated tool calls if the model keeps
+the same decode behavior.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_duplicate_i312` | `8×5` | 1 | 642 | 57.911 | 2.215 | 240 | 8640 | 1474 |
+| `current_duplicate_i0` | `8×5` | 1 | 642 | 57.911 | 2.215 | 245 | 8548 | 1464 |
+| `current_numeric_1_8_duplicate` | `8×5` | 1 | 642 | 57.770 | 2.224 | 245 | 8548 | 1464 |
+| `current_numeric_0_7_duplicate` | `8×5` | 1 | 642 | 55.337 | 2.318 | 260 | 8548 | 1479 |
+| `current_singleletter_duplicate` | `8×5` | 1 | 642 | 55.640 | 2.310 | 259 | 8548 | 1478 |
+
+Interpretation: the URL-token saving is real, but it did not produce a local
+throughput win.  Every shortened URL queue preserved exact K8; however, the
+shorter prompts caused equal or longer completions.  Numeric `1..8` came closest
+but still trailed the `i312` control.  Do not promote URL-token compression
+unless a larger or hosted-relevant screen reverses this result.
