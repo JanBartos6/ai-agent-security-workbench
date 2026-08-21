@@ -86,6 +86,7 @@ USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
 USE_GEMMA_K8_O = False     # hosted transfer not proven; keep Gemma K1 by default
 GEMMA_K8_O_VARIANT = "r53"
 GEMMA_K8_O_BANK_N = 500    # full duplicate K8-O bank for Gemma replay
+GEMMA_K8_O_VALIDATE_N = 0   # 0 == validate duplicate K8-O until budget/target
 GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K8
 USE_GPT_DUPLICATE_K8 = False  # experimental: validate/pad one GPT slot K8 prompt
 GPT_DUPLICATE_K8_BANK_N = 500
@@ -806,6 +807,12 @@ class AttackAlgorithm(AttackAlgorithmBase):
         40-row run still beat K1 after applying that duplicate-cell adjustment.
         """
         target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
+        validate_n = int(
+            self.config.get("gemma_k8_o_validate_n", GEMMA_K8_O_VALIDATE_N)
+        )
+        validation_target = (
+            max(1, min(target, validate_n)) if validate_n > 0 else target
+        )
         msg = _gemma_k8_o_msg(
             self.config.get("gemma_k8_o_variant", GEMMA_K8_O_VARIANT)
         )
@@ -814,7 +821,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         slowest = max(float(seed_slowest), LAT_FLOOR_S)
         min_posts = min(8, max(1, int(hops)))
 
-        while len(kept) < target:
+        while len(kept) < validation_target:
             margin = _adaptive_margin(slowest, margin_s, floor_min, slowest_coef)
             if time.monotonic() + max(slowest * SLOWEST_MULT, margin) >= deadline:
                 break
