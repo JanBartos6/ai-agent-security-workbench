@@ -83,15 +83,15 @@ SPLIT_BY_LATENCY = True   # route the forged template to the slow (gpt_oss) row
 SPLIT_THRESHOLD_S = 12.0  # mean latency above this classifies the row as "slow"
 SPLIT_CLASSIFY_N = 8      # candidates sampled before fixing the template choice
 USE_GEMMA_FORGE = False   # current prompt-db does not show a gemma speed win
-USE_GEMMA_K8_O = False     # hosted transfer not proven; keep Gemma K1 by default
-GEMMA_K8_O_VARIANT = "r53"
+USE_GEMMA_K8_O = True      # hosted-proven in submission 55676922 / public 106.250
+GEMMA_K8_O_VARIANT = "r57"
 GEMMA_K8_O_BANK_N = 500    # full duplicate K8-O bank for Gemma replay
-GEMMA_K8_O_VALIDATE_N = 0   # 0 == validate duplicate K8-O until budget/target
+GEMMA_K8_O_VALIDATE_N = 2   # thin live validation; then pad trusted duplicate bank
 GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K8
-USE_GPT_DUPLICATE_K8 = False  # experimental: validate/pad one GPT slot K8 prompt
+USE_GPT_DUPLICATE_K8 = True  # hosted-proven with current-template index 11565
 GPT_DUPLICATE_K8_BANK_N = 500
 GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
-GPT_DUPLICATE_K8_TEMPLATE = "slotlabels"  # current is the hosted-proven prompt family
+GPT_DUPLICATE_K8_TEMPLATE = "current"  # current is the hosted-proven prompt family
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
