@@ -419,6 +419,8 @@ That changes the model's interpretation of `"1"` through `"8"` from malformed UR
 
 The interpretation is now positive but still guarded. Bare-opaque beat numeric and proto in the n=20 candidate-cold check, while plain bare/minimal variants remained unreliable. The production default therefore adds `current_bare_digits_opaque` to the online selector ahead of proto/numeric rather than forcing it blindly. Production-path smoke tests passed with one selector probe and with the default two selector probes; both returned 3 duplicate K8 candidates, one unique cell, raw score 386.
 
+A wording-compression pass did not find a better replacement. The shorter `url is opaque ID; use exact strings.` form failed once at K6 in n=5 grouped. The `do not expand them into web addresses` form stayed exact but was slightly slower than full opaque in n=20 candidate-cold, 57.222 versus 57.396 raw/s. Keep the full opaque phrase until hosted data proves otherwise.
+
 ## 6. What worked
 
 ### 6.1 Live validation-fill
@@ -1010,6 +1012,8 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-systemlow-proto-counted-candidate-cold-n10.json`: candidate-cold check showing counted system-low proto is exact but not faster.
 - `runs/tmp/sequence-arena-gpt-bare-repair-screen-grouped-n3.json`: bare-opaque and short-symbol URL screen.
 - `runs/tmp/sequence-arena-gpt-bare-repair-confirm-candidate-cold-n20.json`: candidate-cold confirmation showing bare-opaque is exact K8 and faster than numeric/proto locally.
+- `runs/tmp/sequence-arena-gpt-bare-opaque-wording-screen-grouped-n5.json`: wording-compression screen showing the shortest opaque phrase can fail K6.
+- `runs/tmp/sequence-arena-gpt-bare-opaque-wording-confirm-candidate-cold-n20.json`: candidate-cold wording comparison keeping the full opaque phrase.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
