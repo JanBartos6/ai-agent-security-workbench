@@ -92,6 +92,10 @@ USE_GPT_DUPLICATE_K8 = True  # hosted-proven with current-template index 11565
 GPT_DUPLICATE_K8_BANK_N = 500
 GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
 GPT_DUPLICATE_K8_TEMPLATE = "current_numeric_system_low"  # local +14.1% grouped over 55702490
+GPT_ONLINE_SELECT_K8 = True  # race exact-K8 GPT duplicate arms on the hosted row
+GPT_ONLINE_SELECT_TEMPLATES = "current_numeric_system_low,current_numeric_1_8"
+GPT_ONLINE_SELECT_PROBES = 2
+GPT_ONLINE_SELECT_MAX_S = 180.0
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
@@ -341,6 +345,45 @@ def _banked_k8_msg(item: Any, n: int) -> str:
     return _forge_plan_msg(idx, n)
 
 
+def _template_bank_code(template: str) -> str:
+    template_key = str(template or "current").strip().lower()
+    if template_key in {"slotlabels", "slot", "s"}:
+        return "S"
+    if template_key in {
+        "current_nofinal",
+        "nofinal",
+        "current-no-final",
+        "c_nofinal",
+    }:
+        return "N"
+    if template_key in {
+        "current_numeric_1_8",
+        "current-numeric-1-8",
+        "numeric_1_8",
+        "numeric",
+        "num18",
+    }:
+        return "M"
+    if template_key in {
+        "current_numeric_system_low",
+        "current-system-low-numeric",
+        "numeric_system_low",
+        "system_low_numeric",
+        "syslow_numeric",
+    }:
+        return "L"
+    return "C"
+
+
+def _template_csv(value: Any) -> tuple[str, ...]:
+    items = tuple(
+        item.strip()
+        for item in str(value or "").split(",")
+        if item.strip()
+    )
+    return items or (GPT_DUPLICATE_K8_TEMPLATE,)
+
+
 # Locally verified GPT-OSS public-guardrail full-K8 current-template bank,
 # sorted fastest-first by profiler elapsed time.  Built from:
 # - runs/tmp/k8-bank-gpt-oss-current-300s.json
@@ -535,6 +578,23 @@ class AttackAlgorithm(AttackAlgorithmBase):
         gpt_duplicate_k8_template = str(
             self.config.get("gpt_duplicate_k8_template", GPT_DUPLICATE_K8_TEMPLATE)
         )
+        gpt_online_select_k8 = bool(
+            self.config.get("gpt_online_select_k8", GPT_ONLINE_SELECT_K8)
+        )
+        gpt_online_select_templates = _template_csv(
+            self.config.get(
+                "gpt_online_select_templates",
+                GPT_ONLINE_SELECT_TEMPLATES,
+            )
+        )
+        gpt_online_select_probes = max(
+            1,
+            int(self.config.get("gpt_online_select_probes", GPT_ONLINE_SELECT_PROBES)),
+        )
+        gpt_online_select_max_s = max(
+            0.0,
+            float(self.config.get("gpt_online_select_max_s", GPT_ONLINE_SELECT_MAX_S)),
+        )
         replay_safe_sizing = bool(
             self.config.get("replay_safe_sizing", REPLAY_SAFE_SIZING)
         )
@@ -664,6 +724,20 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         else (gemma_frame_template if use_gemma_forge else TEMPLATE)
                     )
                     if use_gpt_duplicate_k8 and chosen_template == frame_template and hops >= 8:
+                        if gpt_online_select_k8:
+                            gpt_duplicate_k8_template = self._select_gpt_duplicate_k8_template(
+                                env,
+                                run_started=run_start,
+                                deadline=deadline,
+                                cap=cap,
+                                hops=hops,
+                                seed_slowest=slowest,
+                                bank_index=gpt_duplicate_k8_bank_index,
+                                default_template=gpt_duplicate_k8_template,
+                                templates=gpt_online_select_templates,
+                                probes=gpt_online_select_probes,
+                                max_s=gpt_online_select_max_s,
+                            )
                         return self._fill_gpt_duplicate_k8(
                             env,
                             run_start=run_start,
@@ -784,6 +858,81 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
         return [AttackCandidate.from_messages((msg,)) for _, msg in kept]
 
+    def _select_gpt_duplicate_k8_template(
+        self,
+        env: Any,
+        *,
+        run_started: float,
+        deadline: float,
+        cap: int,
+        hops: int,
+        seed_slowest: float,
+        bank_index: int,
+        default_template: str,
+        templates: tuple[str, ...],
+        probes: int,
+        max_s: float,
+    ) -> str:
+        """Pick the fastest exact-K8 GPT duplicate arm on the current backend.
+
+        Local timing has repeatedly failed to transfer perfectly to Kaggle's T4
+        row.  The attack-generation phase can cheaply probe the actual hosted
+        model before returning the replay bank, so this selector races only the
+        locally exact / hosted-relevant GPT duplicate templates and falls back to
+        the configured default whenever timing evidence is incomplete.
+        """
+        del cap  # replay cap does not affect a bounded arm race
+        min_posts = min(8, max(1, int(hops)))
+        probes = max(1, int(probes))
+        if max_s <= 0.0 or time.monotonic() >= deadline:
+            return default_template
+
+        stop_at = min(deadline, time.monotonic() + float(max_s))
+        ordered: list[str] = []
+        for template in (*templates, default_template):
+            key = str(template or "").strip()
+            if key and key not in ordered:
+                ordered.append(key)
+
+        best_template = default_template
+        best_utility = -1.0
+        for template in ordered:
+            elapsed_samples: list[float] = []
+            posts_total = 0
+            exact = True
+            msg = _banked_k8_msg((_template_bank_code(template), int(bank_index)), 8)
+            for _ in range(probes):
+                next_wall = max(float(seed_slowest) * SLOWEST_MULT, MARGIN_FLOOR_MIN)
+                if time.monotonic() + next_wall >= stop_at:
+                    exact = False
+                    break
+                t0 = time.monotonic()
+                try:
+                    env.reset()
+                    env.interact(msg, max_tool_hops=hops)
+                    posts_fired = self._posts_fired(env)
+                except Exception:
+                    posts_fired = 0
+                elapsed = max(time.monotonic() - t0, LAT_FLOOR_S)
+                if posts_fired < min_posts:
+                    exact = False
+                    break
+                elapsed_samples.append(elapsed)
+                posts_total += posts_fired
+            if not exact or len(elapsed_samples) != probes:
+                continue
+            # With two probes this is max(elapsed); with one it is that one
+            # sample.  This intentionally favors stable speed over a lucky best.
+            conservative_elapsed = max(elapsed_samples)
+            utility = posts_total / conservative_elapsed
+            if utility > best_utility:
+                best_utility = utility
+                best_template = template
+
+        # If the selector had no complete exact-K8 evidence, keep the known
+        # default instead of making a blind switch.
+        return best_template
+
     def _fill_gpt_duplicate_k8(
         self,
         env: Any,
@@ -811,34 +960,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         without changing the safe default path.
         """
         target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
-        template_key = str(template or "slotlabels").strip().lower()
-        if template_key in {"slotlabels", "slot", "s"}:
-            bank_code = "S"
-        elif template_key in {
-            "current_nofinal",
-            "nofinal",
-            "current-no-final",
-            "c_nofinal",
-        }:
-            bank_code = "N"
-        elif template_key in {
-            "current_numeric_1_8",
-            "current-numeric-1-8",
-            "numeric_1_8",
-            "numeric",
-            "num18",
-        }:
-            bank_code = "M"
-        elif template_key in {
-            "current_numeric_system_low",
-            "current-system-low-numeric",
-            "numeric_system_low",
-            "system_low_numeric",
-            "syslow_numeric",
-        }:
-            bank_code = "L"
-        else:
-            bank_code = "C"
+        bank_code = _template_bank_code(template)
         msg = _banked_k8_msg((bank_code, int(bank_index)), 8)
         kept: list[tuple[float, str]] = []
         kept_elapsed: list[float] = []

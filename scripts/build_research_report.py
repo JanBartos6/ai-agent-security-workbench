@@ -243,28 +243,20 @@ The current confirmed public score milestone is 109.770 for submission ref `5570
 
 ## 5. Submission and result timeline
 
-| artifact / submission | status | key result | interpretation |
-|---|---:|---:|---|
-| Blind 2000-candidate baseline | complete | 43.47 public | Low fire rate and slow GPT-OSS row made blind breadth inefficient. |
-| 60-control diagnostic | complete | 5.400 public | Sanity check: 60 clean successful candidates at 0.09 each. |
-| Validation-fill R1-R3, ref `55532140` | complete | 86.805 public | Confirms public plateau architecture transferred to T4. |
-| Current branch validation run, ref `55553873` | complete | 83.745 public | Regression versus 86.805; changes were not worth keeping as production defaults. |
-| Broad K8 slow-row multi-post run, ref `55562414` | complete | 65.070 public | Failed transfer; broad K8/default mixing consumed replay without enough reliable score. |
-| Current-only verified K8 bank, ref `55584698` | complete | 96.010 public | Confirmed controlled GPT-OSS K8 transfer; new public baseline. |
-| GPT slot-label K8 bank, ref `55625367` | complete | 66.425 public | Slot-label local economics did not transfer; do not use this family as the hosted default. |
-| Gemma K8-O live bank + GPT slot-label K8, ref `55627349` | complete | 65.210 public | Failed broad mix; this does not invalidate later corrected R57 because GPT slot-label dominated the regression. |
-| Gemma K8-O duplicate bank 500 + GPT slot-label K8, ref `55628612` | complete | 65.210 public | Same broad-mix failure; explicit local Gemma validation did not rescue the bad combined topology. |
-| GPT duplicate K8 topology on safe baseline, ref `55649067` | complete | 102.215 public | First post-96 jump; duplicate GPT K8 topology improved the hosted score. |
-| GPT current duplicate K8 on safe baseline, ref `55652403` | complete | 101.955 public | Similar family to the 102.215 result; useful control, slightly worse. |
-| Gemma R57 isolated on safe GPT baseline, ref `55652559` | complete | 91.640 public | Isolated R57 path helped less than the final mixed run but showed the corrected Gemma path was viable. |
-| GPT current duplicate index 745 on safe baseline, ref `55652649` | complete | 93.190 public | Local grouped-cache false lead; candidate-cold later showed the index underfired. |
-| Gemma R57 thin validation diagnostic, ref `55675853` | complete | 100.095 public | R57 became positive after the implementation was narrowed and validated thinly. |
-| GPT current duplicate plus Gemma R57 thin validation, ref `55676922` | complete | 106.250 public | Hosted-proven but superseded by numeric GPT K8. |
-| GPT slot duplicate index 11997, ref `55679710` | complete | 89.515 public | Slot duplicate index did not transfer. |
-| GPT slot duplicate index 11521, ref `55679947` | complete | 97.625 public | Better than index 11997, still below the current/current+R57 family. |
-| GPT current no-final duplicate plus Gemma R57, ref `55698927` | complete | 107.850 public | Positive but weaker than numeric; do not default because it was locally K6-prone. |
-| GPT current numeric 1-8 duplicate plus Gemma R57, ref `55702490` | complete | 109.770 public | New best confirmed public score; promoted as the GPT duplicate default. |
-| GPT system-low numeric duplicate plus Gemma R57, ref `55717477` | pending on 2026-08-23 API check | unknown | Controlled Harmony system-low ablation; local n=20 exact K8 with +14.1% grouped/warm raw/s over numeric. |
+Key public submissions:
+
+- `55532140`: 86.805 public. Validation-fill transferred to T4 and became the first strong architecture.
+- `55584698`: 96.010 public. Controlled current-only GPT K8 bank proved K8 could transfer when the family was narrow.
+- `55625367`, `55627349`, `55628612`: 65.210-66.425 public. Slot-label and broad mixed K8 packaging failed hosted transfer.
+- `55649067`: 102.215 public. GPT duplicate K8 topology produced the first post-96 jump.
+- `55652649`: 93.190 public. Duplicate index 745 was a grouped-cache false lead; candidate-cold evidence later explained the miss.
+- `55675853`: 100.095 public. Gemma R57 thin validation became positive after the implementation was narrowed.
+- `55676922`: 106.250 public. GPT current duplicate plus Gemma R57 became the first corrected mixed K8 anchor.
+- `55679710` / `55679947`: 89.515 / 97.625 public. Slot duplicate indices did not beat the current family.
+- `55698927`: 107.850 public. GPT no-final was positive but weaker than numeric and locally K6-prone.
+- `55702490`: 109.770 public. GPT numeric 1-8 duplicate plus Gemma R57 is the current confirmed anchor.
+- `55717477`: pending as of the 2026-08-23 API check. This is the controlled Harmony system-low numeric ablation.
+- `GPT online select numeric/system-low K8 plus Gemma R57`: launched after the selector smoke; it races the 109.770 numeric anchor against system-low on the hosted backend.
 
 The 109.770 score is the strongest confirmed evidence that our interpretation of the public leaderboard is correct: public scoring is mostly successful replay throughput, not a search for complex multi-step semantic attacks. It also proves that small token-surface changes can transfer when they stay inside a hosted-proven exact-K8 family. The 65.210/66.425 failures are equally useful: they show that local K8 success does not transfer when the submitted topology is the wrong family.
 
@@ -355,6 +347,31 @@ The winning local arm is `harmony_system_low_numeric_duplicate`: inject `Reasoni
 | candidate-cold median completion tok | 246 | 224 | -22 tokens |
 
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
+
+### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector
+
+The new analysis also suggested two practical follow-ups: remove syntax tokens from Gemma R57, and avoid trusting local GPT timing by selecting the fastest exact-K8 arm inside the hosted `run()` call.
+
+Gemma syntax removal was mostly negative. The successful R57 mechanism depends on the special-token-quoted data anchor and the `O` suffix more than it first appears. A small grouped smoke found bare URL and empty URL variants could sometimes remain exact K8, but they were slower or unstable. Bare data broke the parser/behavioral fixed point. The only superficially positive arm, R57 without suffix, was exact K8 in grouped/warm n=5 and slightly faster, but the candidate-cold confirmation degraded to K7:
+
+| Gemma arm | grouped/warm | candidate-cold | decision |
+|---|---:|---:|---|
+| R57 control | 5 x K8, 8.026 raw/s | 5 x K8, 6.560 raw/s | keep |
+| R57 no suffix | 5 x K8, 8.207 raw/s | 5 x K7, 5.845 raw/s | reject |
+| R57 bare URL | exact in one smoke, slower | not promoted | reject |
+| R57 empty URL | inconsistent K8/K6 | not promoted | reject |
+| R57 bare data | 0 to K2/K5 failures | not promoted | reject |
+
+So Gemma stays on hosted-proven R57. There is no current Gemma compression worth submitting.
+
+The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the attack probes only the two locally exact, hosted-relevant duplicate-K8 arms:
+
+```text
+current_numeric_system_low
+current_numeric_1_8
+```
+
+It rejects any arm that fails exact K8 and otherwise selects by conservative posts-per-second on the live backend. A forced-GPT smoke with one selector probe and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: 3 candidates, one unique cell, raw score 386. A hosted selector variant was launched as `GPT online select numeric/system-low K8 plus Gemma R57`; it is intended as a hedge, not as proof that system-low has transferred.
 
 ## 6. What worked
 
@@ -466,7 +483,7 @@ description: current-only verified K8 bank 859 commit 9aab298
 
 This establishes the rule for future K work: do not promote a K-hop variant because it is interesting locally; promote it only when it has a large local full-K sample, no mixed template families, fastest-first or verified-bank ordering, and a replay-saturation tail that does not destabilize the fast row.
 
-The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template duplicate family. `SLOW_MULTIPOST_TEMPLATE` is `current`, `GPT_DUPLICATE_K8_TEMPLATE` is `current`, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Current no-final support exists only as an experimental compression ablation.
+The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template/numeric duplicate family. `SLOW_MULTIPOST_TEMPLATE` remains `current`, `GPT_DUPLICATE_K8_TEMPLATE` now defaults to `current_numeric_system_low`, `GPT_ONLINE_SELECT_K8=True` races it against the hosted-proven `current_numeric_1_8` fallback, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Current no-final support exists only as an experimental compression ablation.
 
 ### Why K8 can win despite losing cell bonuses
 
@@ -733,15 +750,15 @@ The current `attacks/05_validation_fill/attack.py` does the following:
 
 1. Warm up the live environment to avoid counting model-load latency as candidate cost.
 2. Sample candidates to classify the row as slow or fast by observed latency.
-3. Use the hosted-proven GPT current-template duplicate K8 family on the latency-classified slow row.
-4. For the slow row, probe K8 candidates at the grader's hop cap and keep only traces that complete all eight posts.
-5. Append the GPT duplicate K8 bank with `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_system_low"` and `GPT_DUPLICATE_K8_BANK_INDEX=11565`; if hosted `55717477` loses, roll this back to `current_numeric_1_8`.
+3. On the latency-classified slow row, use GPT duplicate K8 rather than K1.
+4. With `GPT_ONLINE_SELECT_K8=True`, probe `current_numeric_system_low` and `current_numeric_1_8` on the live backend, reject non-K8 arms, and pick the faster exact-K8 arm.
+5. Fill the GPT replay bank with the selected duplicate K8 prompt at `GPT_DUPLICATE_K8_BANK_INDEX=11565`; if selector evidence is unavailable, fall back to `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_system_low"`.
 6. For the fast Gemma row, use `USE_GEMMA_K8_O=True` with `GEMMA_K8_O_VARIANT="r57"`.
 7. Live-validate a thin Gemma R57 prefix with `GEMMA_K8_O_VALIDATE_N=2`, then pad with the duplicate R57 K8-O bank to `GEMMA_K8_O_BANK_N=500`.
 8. Trim pathological K1/K8 tails using the 1.30 median multiplier where applicable.
 9. Append cheap untested same-template tail candidates only where appropriate so replay does not run out of work.
 
-The code also contains support for `GPT_DUPLICATE_K8_TEMPLATE="current_nofinal"` and `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"`. No-final is retained as an experiment only: hosted score 107.850 was positive but below numeric, and local replay says it can stop at K6. Numeric is hosted-proven at 109.770. The current default is `current_numeric_system_low`, a narrow system-low ablation that beat numeric locally and is pending hosted proof as `55717477`.
+The code also contains support for `GPT_DUPLICATE_K8_TEMPLATE="current_nofinal"` and `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"`. No-final is retained as an experiment only: hosted score 107.850 was positive but below numeric, and local replay says it can stop at K6. Numeric is hosted-proven at 109.770. The current default is `current_numeric_system_low`, a narrow system-low ablation that beat numeric locally and is pending hosted proof as `55717477`; the online selector is a hosted hedge around that uncertainty.
 
 The architecture is intentionally narrow. It does not try to solve all possible attacks; it optimizes the public-proven high-value primitive.
 
@@ -749,9 +766,10 @@ The architecture is intentionally narrow. It does not try to solve all possible 
 
 ### P0: Preserve the 109.770 anchor while waiting for system-low numeric
 
-The known-good hosted checkpoint is `55702490`, which scored 109.770 with GPT numeric duplicate plus Gemma R57 thin validation. The only still-pending result in this branch is:
+The known-good hosted checkpoint is `55702490`, which scored 109.770 with GPT numeric duplicate plus Gemma R57 thin validation. The still-pending results in this branch are:
 
 - `55717477`: GPT system-low numeric duplicate K8 plus Gemma R57 thin validation.
+- `GPT online select numeric/system-low K8 plus Gemma R57`: selector variant, submitted after the local smoke; intended to choose between the 109.770 numeric anchor and system-low on the hosted backend.
 
 Do not treat system-low numeric as proven until hosted scoring beats 109.770. It is locally strong enough to submit: grouped/warm n=20 was 20/20 exact K8 and +14.1% raw/s over numeric, candidate-cold n=20 was 20/20 exact K8 and +6.9% raw/s over numeric.
 
@@ -813,6 +831,7 @@ This section is meant to answer the practical handoff question: “did we alread
 | GPT current no-final duplicate | positive but non-default | hosted `55698927` scored 107.850; local recheck was K6-prone | Keep as evidence only; numeric is better. |
 | GPT current numeric 1-8 duplicate | hosted-proven | hosted `55702490` scored 109.770 | Promote as rollback anchor. |
 | GPT Harmony system-low numeric | pending/promising | grouped/warm n=20: 20 x K8, 64.252 raw/s vs 56.310 numeric; candidate-cold n=20: 55.686 vs 52.104 numeric | Submitted `55717477`; promote only if hosted beats 109.770. |
+| GPT hosted online selector | implemented/submitted | forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; races system-low numeric vs numeric fallback in hosted `run()` | Use as hedge around local-to-host timing transfer. |
 | GPT Harmony developer-low numeric | failed reliability | candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7 | Do not submit. |
 | GPT bare digit/letter URL queues | mostly negative | bare digits exact but slower; bare letters failed under system-low | Drop unless a different wording emerges. |
 | GPT repeat-to-cap search | failed/negative | repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s | Drop this family. |
@@ -829,6 +848,7 @@ This section is meant to answer the practical handoff question: “did we alread
 | Exact multi-block K8 | research-only | `chain2_slot_analysis_next8` can do 16/16, but grouped/warm raw/s 58.714 vs 59.754 control | Do not promote; 3-4 block scaling degrades. |
 | Geometric tail | not currently useful | requires multi-block K8 to beat separate K8 first; current data does not | Drop for now except as replay-timeout theory. |
 | Gemma K8-O/R57 native-anchor prompt | hosted-proven when narrowed | R57 plus current GPT duplicate scored 106.250; early broad mixes scored 65.210 | Preserve R57 path; change only narrowly. |
+| Gemma R57 syntax-token removal | failed gate | bare data failed; bare/empty URL slower or unstable; no-suffix was grouped K8 but candidate-cold K7 | Do not submit; keep R57 anchors. |
 | Gemma one-message generic K8 | negative | mostly one post | Superseded by K8-O prompt family. |
 | Gemma double-brace fixed-point K8 | negative for K8, useful clue | strict run produced exactly 2 posts in 40/40, then invalid hop 3 | Historical parser clue only. |
 | Gemma K2 terminal ordinal | failed | 0/40 exact K2; first generation became parser-invalid | Do not promote this prompt. |
