@@ -841,6 +841,58 @@ completion tokens and a 25-ish eval-token increase.  That overhead is far above
 the ~1.56% break-even for a +2 novelty bonus on a K8 finding.  Keep duplicate
 developer bare-opaque as the faster local shape.
 
+### Bare digit wording reconfirmation
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-bare-digits-current-check-candidate-cold-n5.json`
+and
+`runs/tmp/sequence-arena-gpt-bare-digits-confirm-candidate-cold-n20.json`
+
+Goal: recheck the bare-digit URL hypothesis directly after the user-proposed
+`"url":"1"` through `"url":"8"` queue.  The validator accepts these values; the
+open question is whether GPT-OSS treats naked digits in a `url` argument as
+literal opaque values or "repairs" them into URL-like targets / early final
+answers.  This run compares the hosted-proven numeric anchor, the current
+bare-opaque family, the shorter "do not expand" wording, and developer/system
+Harmony role-forged variants.
+
+Small n=5 screen:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_numeric_1_8_duplicate` | `8×5` | 1 | 642 | 56.757 | 2.259 | 246 | 8548 | 1465 |
+| `current_bare_digits_literal_opaque_1_8_duplicate` | `8×5` | 1 | 642 | 63.633 | 2.021 | 210 | 8448 | 1406 |
+| `current_bare_digits_literal_id_notweb_1_8_duplicate` | `8×5` | 1 | 642 | 60.006 | 2.139 | 231 | 8368 | 1417 |
+| `current_bare_digits_literal_noexpand_1_8_duplicate` | `8×5` | 1 | 642 | 63.931 | 2.002 | 214 | 8400 | 1404 |
+| `current_bare_digits_literal_min_1_8_duplicate` | `7×5` | 1 | 562 | 37.904 | 2.962 | 350 | 8296 | 1527 |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×5` | 1 | 642 | 64.032 | 1.999 | 200 | 8640 | 1420 |
+| `harmony_developer_low_bare_digits_literal_opaque_literalids_duplicate` | `8×5` | 1 | 642 | 61.877 | 2.068 | 217 | 8528 | 1423 |
+| `harmony_developer_low_bare_digits_literal_opaque_shortphrase_duplicate` | `8×5` | 1 | 642 | 65.211 | 1.964 | 204 | 8528 | 1410 |
+
+The minimal current-template wording failed cleanly to K7 and generated many
+more completion tokens.  The other opaque-ID forms stayed exact K8, so the n=20
+confirmation kept only the plausible arms:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_numeric_1_8_duplicate` | `8×20` | 1 | 2562 | 56.062 | 2.283 | 246.0 | 8548.0 | 1465.0 |
+| `current_bare_digits_literal_opaque_1_8_duplicate` | `8×20` | 1 | 2562 | 62.729 | 2.033 | 210.0 | 8448.0 | 1406.0 |
+| `current_bare_digits_literal_noexpand_1_8_duplicate` | `8×20` | 1 | 2562 | 60.539 | 2.080 | 214.0 | 8400.0 | 1404.0 |
+| `harmony_system_low_bare_digits_literal_opaque_duplicate` | `8×20` | 1 | 2562 | 63.103 | 2.000 | 207.0 | 8544.0 | 1415.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×20` | 1 | 2562 | 65.236 | 1.961 | 200.0 | 8640.0 | 1420.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_shortphrase_duplicate` | `8×20` | 1 | 2562 | 64.860 | 1.971 | 204.0 | 8528.0 | 1410.0 |
+
+Interpretation: the bare-digit idea works only when framed as opaque IDs.  The
+tool validator is not the blocker; model-side `url` normalization is.  Removing
+too much wording (`url is opaque ID; use exact strings.` in the current
+template) collapses to K7 and expensive completion drift.  In the developer-low
+Harmony topology, the shortphrase is now reliable at n=20, but it still loses
+slightly to the full opaque wording because it generates four more median
+completion tokens.  Keep `harmony_developer_low_bare_digits_literal_opaque` as
+the local best exact-K8 GPT arm; do not promote shorter bare-digit wording
+unless hosted evidence or a larger candidate-cold run reverses this small
+margin.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
