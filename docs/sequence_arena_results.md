@@ -924,6 +924,48 @@ trigger saves prompt bytes but adds 12 median completion tokens; space/x add
 2--3 completion tokens; medium/none add 8--11 completion tokens.  Keep
 `Reasoning: low` and the existing developer trigger shape.
 
+### Targeted early-hop analysis snippet suppression
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-bare-targeted-now-continue-screen-candidate-cold-n5.json`
+and
+`runs/tmp/sequence-arena-gpt-bare-targeted-now-continue-confirm-candidate-cold-n20.json`
+
+Goal: inspect actual generation traces for the current best developer-low
+bare-opaque arm and target only the waste that still appears.  The trace showed
+two deterministic early-hop snippets before tool calls:
+
+- hop 2: `Now next endpoint "2".`
+- hop 3: `Continue.`
+
+Broad "no analysis" and compact-tool wording had already lost, so this screen
+tested only short, targeted variants.
+
+Small n=5 screen:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×5` | 1 | 642 | 66.845 | 1.921 | 200 | 8640 | 1420 |
+| `harmony_developer_low_bare_digits_literal_opaque_shortanalysis_duplicate` | `8×5` | 1 | 642 | 66.648 | 1.929 | 200 | 8608 | 1416 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_now_continue_duplicate` | `8×5` | 1 | 642 | 67.094 | 1.908 | 197 | 8680 | 1422 |
+| `harmony_developer_low_bare_digits_literal_opaque_toolcall_only_duplicate` | `8×5` | 1 | 642 | 65.175 | 1.961 | 203 | 8640 | 1423 |
+| `harmony_developer_low_bare_digits_literal_opaque_no_words_duplicate` | `8×5` | 1 | 642 | 63.668 | 2.018 | 213 | 8632 | 1432 |
+
+The targeted ban was the only positive arm, so it was confirmed against the
+default at n=20:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×20` | 1 | 2562 | 66.141 | 1.937 | 200.0 | 8640.0 | 1420.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_now_continue_duplicate` | `8×20` | 1 | 2562 | 66.734 | 1.916 | 197.0 | 8680.0 | 1422.0 |
+
+Interpretation: this is a small but real local improvement.  The targeted ban
+kept exact K8 and reduced median completion tokens by three, enough to offset
+the 40 prompt-token increase locally.  Since hosted T4 scoring is relatively
+decode-sensitive, this arm is worth adding to the online selector ahead of the
+full opaque developer-low arm.  It is not promoted as the static fallback until
+hosted evidence proves transfer.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
