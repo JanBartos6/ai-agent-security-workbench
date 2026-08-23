@@ -1116,6 +1116,40 @@ against making it the static fallback before hosted results return.  If the T4
 path preserves normal llama prefix reuse across hops, it should transfer; if not,
 the gain mostly collapses.
 
+### Hosted selector steady-state scoring update
+
+The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
+`GPT_ONLINE_SELECT_WARMUP_PROBES=1`.  It still requires every probe for an arm
+to produce exact K8, but it scores speed on the post-warmup probes:
+
+```
+utility = sum(scored_posts) / sum(scored_elapsed)
+```
+
+This better matches the production replay objective.  Returned GPT candidates
+are a duplicate K8 bank, so candidate 2..N dominate row throughput.  The old
+selector used max elapsed over two probes, which was safe but could overweight
+the first cold probe even though that probe is negligible in a 500-entry replay
+bank.
+
+Validation:
+
+- Unit test `test_online_selector_scores_duplicate_steady_state` covers a case
+  where the old max-over-probes selector would choose the wrong arm.
+- Bounded GPT live-fill smoke with one classification sample, two selector arms,
+  three selector probes, and a three-candidate replay cap returned:
+  `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
+  `score_normalized=1.93`, `attack_elapsed_s=29.457`.
+- The prepared notebook
+  `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb`
+  was rebuilt after the selector change and its embedded attack SHA-256 matched
+  the current `attack.py` (`dd11476710c6f1b954133b94f19173f873a76e16983379832f82e875816cf4e9`).
+
+Interpretation: this is a production-path improvement for the next hosted
+selector submission, not proof that the exact-phrase arm transfers.  The
+fallback remains the hosted-proven `current_numeric_1_8` anchor if selector
+evidence is incomplete.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector

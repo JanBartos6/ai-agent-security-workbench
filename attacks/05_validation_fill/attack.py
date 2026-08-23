@@ -100,7 +100,8 @@ GPT_ONLINE_SELECT_TEMPLATES = (
     "current_bare_digits_opaque,current_proto_digits_literal,current_numeric_system_low,"
     "current_numeric_1_8"
 )
-GPT_ONLINE_SELECT_PROBES = 2
+GPT_ONLINE_SELECT_PROBES = 3
+GPT_ONLINE_SELECT_WARMUP_PROBES = 1
 GPT_ONLINE_SELECT_MAX_S = 180.0
 GPT_DUPLICATE_K8_VALIDATE_N = 1  # validate once, then pad byte-identical K8
 
@@ -958,6 +959,15 @@ class AttackAlgorithm(AttackAlgorithmBase):
             1,
             int(self.config.get("gpt_online_select_probes", GPT_ONLINE_SELECT_PROBES)),
         )
+        gpt_online_select_warmup_probes = max(
+            0,
+            int(
+                self.config.get(
+                    "gpt_online_select_warmup_probes",
+                    GPT_ONLINE_SELECT_WARMUP_PROBES,
+                )
+            ),
+        )
         gpt_online_select_max_s = max(
             0.0,
             float(self.config.get("gpt_online_select_max_s", GPT_ONLINE_SELECT_MAX_S)),
@@ -1103,6 +1113,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                                 default_template=gpt_duplicate_k8_template,
                                 templates=gpt_online_select_templates,
                                 probes=gpt_online_select_probes,
+                                warmup_probes=gpt_online_select_warmup_probes,
                                 max_s=gpt_online_select_max_s,
                             )
                         return self._fill_gpt_duplicate_k8(
@@ -1239,6 +1250,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         default_template: str,
         templates: tuple[str, ...],
         probes: int,
+        warmup_probes: int,
         max_s: float,
     ) -> str:
         """Pick the fastest exact-K8 GPT duplicate arm on the current backend.
@@ -1248,10 +1260,16 @@ class AttackAlgorithm(AttackAlgorithmBase):
         model before returning the replay bank, so this selector races only the
         locally exact / hosted-relevant GPT duplicate templates and falls back to
         the configured default whenever timing evidence is incomplete.
+
+        Replay uses a long duplicate bank.  The first replay candidate is a tiny
+        fraction of the row; steady-state duplicate latency dominates.  Therefore
+        the selector may require every probe to be exact K8 while scoring only
+        the post-warmup probes for speed.
         """
         del cap  # replay cap does not affect a bounded arm race
         min_posts = min(8, max(1, int(hops)))
         probes = max(1, int(probes))
+        warmup_probes = max(0, min(int(warmup_probes), probes - 1))
         if max_s <= 0.0 or time.monotonic() >= deadline:
             return default_template
 
@@ -1266,7 +1284,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         best_utility = -1.0
         for template in ordered:
             elapsed_samples: list[float] = []
-            posts_total = 0
+            posts_samples: list[int] = []
             exact = True
             msg = _banked_k8_msg((_template_bank_code(template), int(bank_index)), 8)
             for _ in range(probes):
@@ -1286,13 +1304,12 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     exact = False
                     break
                 elapsed_samples.append(elapsed)
-                posts_total += posts_fired
+                posts_samples.append(int(posts_fired))
             if not exact or len(elapsed_samples) != probes:
                 continue
-            # With two probes this is max(elapsed); with one it is that one
-            # sample.  This intentionally favors stable speed over a lucky best.
-            conservative_elapsed = max(elapsed_samples)
-            utility = posts_total / conservative_elapsed
+            scored_elapsed = elapsed_samples[warmup_probes:] or elapsed_samples
+            scored_posts = posts_samples[warmup_probes:] or posts_samples
+            utility = sum(scored_posts) / max(sum(scored_elapsed), LAT_FLOOR_S)
             if utility > best_utility:
                 best_utility = utility
                 best_template = template

@@ -417,7 +417,9 @@ current_proto_digits_literal
 current_numeric_1_8
 ```
 
-It rejects any arm that fails exact K8 and otherwise selects by conservative posts-per-second on the live backend. A forced-GPT smoke with one selector probe and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: 3 candidates, one unique cell, raw score 386. Hosted selector variants were launched as `55718913`, `55720868`, and `55721360`; they are hedges around local-to-host timing transfer, not proof until their public scores beat 109.770.
+It rejects any arm that fails exact K8 and otherwise selects by posts-per-second on the live backend. The selector was tightened after the cache-mode sensitivity screen: it now uses three probes and discards the first probe for speed scoring while still requiring all probes to be exact K8. This better matches duplicate-bank replay, where candidate 2..N dominate throughput and the first cold candidate is almost irrelevant.
+
+A bounded forced-GPT smoke with one classification sample, two selector arms, three selector probes, and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=29.457`. The rebuilt prepared notebook `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb` embeds the current attack exactly; both source and embedded attack hash to `dd11476710c6f1b954133b94f19173f873a76e16983379832f82e875816cf4e9`. Hosted selector variants already launched as `55718913`, `55720868`, and `55721360`; the rebuilt notebook is the next-reset selector candidate if we spend another submission. These remain hedges around local-to-host timing transfer, not proof until public scores beat 109.770.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
