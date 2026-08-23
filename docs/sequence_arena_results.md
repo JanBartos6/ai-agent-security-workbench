@@ -1417,6 +1417,32 @@ force-cold is negative and 4x does not scale.  It belongs in the hosted online
 selector, where the T4 row can reject it if prefix reuse differs from the local
 normal path.
 
+### Exact-phrase chain2 guard compression screen
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-shortguards-screen-candidate-cold-n3.json`
+and
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-ablation-candidate-cold-n3.json`.
+
+Goal: check whether the successful `chain2_guard5` continuation could be made
+shorter without losing exact 16-post replay.  All variants preserved 16/16, but
+shorter wording made GPT-OSS emit more completion tokens, so raw/s fell.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Median prompt tokens | Decision |
+| --- | --- | ---: | ---: | ---: | --- |
+| current `guard5` | `16x3` | 71.885 / 70.678 | 378 | 20736 | keep |
+| `guard5_short` | `16x3` | 68.644 | 396 | 20520 | reject |
+| `guard5_min` | `16x3` | 67.458 | 409 | 20400 | reject |
+| `guard567` | `16x3` | 63.114 | 449 | 20344 | reject |
+| `guard5_nonext` | `16x3` | 68.416 | 396 | 20720 | reject |
+| `guard5_noreceipts` | `16x3` | 67.298 | 402 | 20688 | reject |
+| `guard5_suffixonly` | `16x3` | 67.559 | 405 | 20640 | reject |
+
+Interpretation: the current guard is longer in prompt tokens, but it suppresses
+completion drift enough to win.  The small outer `Next.` token and the “prior
+posts are receipts” wording appear to help keep the second block compact.  Do
+not replace the production selector arm with the shorter guards.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
