@@ -892,7 +892,8 @@ completion tokens.  Keep `harmony_developer_low_bare_digits_literal_opaque` as
 the local best exact-K8 GPT arm; do not promote shorter bare-digit wording
 unless hosted evidence or a larger candidate-cold run reverses this small
 margin.  The shortphrase arm was added only to the hosted online selector so
-the T4 row can reject it; the static fallback remains full opaque wording.
+the T4 row can reject it; the static fallback remains the hosted-proven numeric
+anchor.
 
 ### Developer-low trigger and reasoning check
 
@@ -964,7 +965,8 @@ kept exact K8 and reduced median completion tokens by three, enough to offset
 the 40 prompt-token increase locally.  Since hosted T4 scoring is relatively
 decode-sensitive, this arm is worth adding to the online selector ahead of the
 full opaque developer-low arm.  It is not promoted as the static fallback until
-hosted evidence proves transfer.
+hosted evidence proves transfer; the fallback remains the hosted-proven numeric
+anchor.
 
 ### Targeted ban cross-family check
 

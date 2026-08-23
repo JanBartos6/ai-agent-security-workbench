@@ -62,3 +62,13 @@ def test_developer_low_ban_exact_phrases_template_is_selector_addressable() -> N
     assert "The url argument is an opaque string ID, not a web address" in msg
     assert 'Never write "Now next endpoint" or "Continue".' in msg
     assert '"1", "2", "3", "4", "5", "6", "7", "8"' in msg
+
+
+def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> None:
+    module = load_validation_fill_module()
+
+    templates = module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
+
+    assert module.GPT_DUPLICATE_K8_TEMPLATE == "current_numeric_1_8"
+    assert templates[0] == "developer_low_bare_digits_opaque_ban_exact_phrases"
+    assert "current_numeric_1_8" in templates
