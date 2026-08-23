@@ -420,7 +420,7 @@ A JSON-order/compactness screen tried to force compact key order `data,url`, bec
 | short `JSON:data,url` order | 5 x K8 | 59.545 | 210 | reject |
 | numeric anchor | 5 x K8 | 53.655 | 246 | anchor only |
 
-Trace inspection showed call 1 still emitted `{"url":"1","data":"SECRET_MARKER"}` while later hops gained extra analysis such as `Continue.`  Do not prompt JSON field order inside the current exact-phrase family.
+Trace inspection showed call 1 still emitted `{{"url":"1","data":"SECRET_MARKER"}}` while later hops gained extra analysis such as `Continue.`  Do not prompt JSON field order inside the current exact-phrase family.
 
 A label-shape screen kept the same exact-phrase prompt and changed only the one-character opaque URL labels:
 
@@ -493,9 +493,9 @@ current_numeric_1_8
 
 It rejects any arm that fails exact K8 and otherwise selects by posts-per-second on the live backend. The selector was tightened after the cache-mode sensitivity screen: it now uses three probes, discards the first probe for speed scoring while still requiring all probes to be exact K8, and gives the selector up to 900 seconds. This better matches duplicate-bank replay, where candidate 2..N dominate throughput and the first cold candidate is almost irrelevant. It also measures the hosted-proven `current_numeric_1_8` fallback first, before challenger arms, so a bounded hosted selector window cannot accidentally promote an unproven early-listed arm without first benchmarking the anchor.
 
-The previous broad selector arms (`system_low_bare_digits_opaque`, `current_bare_digits_opaque`, `current_proto_digits_literal`, shortphrase, and `No Now/Continue`) remain available by explicit config and are already represented in pending hosted ablations. The next prepared notebook is narrower on purpose: spend the hosted selector window on the local-best exact-phrase challenger versus the 109.770 numeric fallback, not on weaker/noisier arms.
+The previous broad selector arms (`system_low_bare_digits_opaque`, `current_bare_digits_opaque`, `current_proto_digits_literal`, shortphrase, and `No Now/Continue`) remain available by explicit config and are already represented in pending hosted ablations. The next prepared notebook is narrower on purpose: spend the hosted selector window on the local-best exact-phrase family, including the 2-message `chain2_guard5` variant, versus the 109.770 numeric fallback, not on weaker/noisier arms.
 
-A bounded forced-GPT smoke with one classification sample, the default narrowed two-arm selector, three selector probes, and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=28.900`. The rebuilt prepared notebook `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb` embeds the current attack exactly; both source and embedded attack hash to `b1d84e73e3ca2a5f4476b7398f0a907ec2244e2f219e924b24797627f723134f`. Hosted selector variants already launched as `55718913`, `55720868`, and `55721360`; the rebuilt notebook is the next-reset selector candidate if we spend another submission. These remain hedges around local-to-host timing transfer, not proof until public scores beat 109.770.
+A bounded forced-GPT smoke with one classification sample, the earlier narrowed two-arm selector, three selector probes, and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=28.900`. After adding `chain2_guard5`, a forced-chain smoke returned `score_raw=770.0` for three duplicate 16-post candidates, and a production-like three-probe selector smoke selected the 2-message chain with `score_raw=770.0`. Hosted selector variants already launched as `55718913`, `55720868`, and `55721360`; the chain2 selector is the next-reset selector candidate if we spend another submission. These remain hedges around local-to-host timing transfer, not proof until public scores beat 109.770.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
@@ -645,7 +645,7 @@ description: current-only verified K8 bank 859 commit 9aab298
 
 This establishes the rule for future K work: do not promote a K-hop variant because it is interesting locally; promote it only when it has a large local full-K sample, no mixed template families, fastest-first or verified-bank ordering, and a replay-saturation tail that does not destabilize the fast row.
 
-The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template/numeric duplicate family. `SLOW_MULTIPOST_TEMPLATE` remains `current`, `GPT_DUPLICATE_K8_TEMPLATE` currently defaults to the hosted-proven `current_numeric_1_8`, `GPT_ONLINE_SELECT_K8=True` now probes only the developer-low exact-phrase bare-opaque challenger against numeric fallback by default, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Broader bare/proto/system-low selector arms remain explicit-config experiments covered by pending hosted ablations. Current no-final support exists only as an experimental compression ablation.
+The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template/numeric duplicate family. `SLOW_MULTIPOST_TEMPLATE` remains `current`, `GPT_DUPLICATE_K8_TEMPLATE` currently defaults to the hosted-proven `current_numeric_1_8`, `GPT_ONLINE_SELECT_K8=True` now probes the developer-low exact-phrase bare-opaque family, including `chain2_guard5`, against numeric fallback by default, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Broader bare/proto/system-low selector arms remain explicit-config experiments covered by pending hosted ablations. Current no-final support exists only as an experimental compression ablation.
 
 ### Why K8 can win despite losing cell bonuses
 
@@ -743,7 +743,7 @@ user message 3 -> another short continuation
 
 This is legal under the public SDK shape because one `AttackCandidate` can contain up to 32 user messages, and each user message gets its own `env.interact(..., max_tool_hops=8)` replay loop. The reason to test it was sound: maybe the second and later blocks can avoid some fresh-candidate setup and use much shorter user prompts.
 
-The measured result is: exact 2 x K8 can be made to work for GPT-OSS with the `chain2_slot_analysis_next8` prompt, but it is not currently economical enough to promote.
+The first measured result was: exact 2 x K8 can be made to work for GPT-OSS with the `chain2_slot_analysis_next8` prompt, but that old slot-chain was not economical enough to promote.
 
 Grouped/warm confirmation:
 
@@ -759,7 +759,7 @@ Candidate-cold sanity check:
 | `slot_duplicate_i11565` | 5 x 8 | 642 | 55.600 | 2.328 | 238 | 8732 | 1487 |
 | `chain2_slot_analysis_next8` | 5 x 16 | 1282 | 56.728 | 4.508 | 477 | 20672 | 2127 |
 
-The candidate-cold number gives a small local win for the two-block chain, but the grouped/warm number gives a small loss, and prior hosted duplicate-index probes matched the grouped/warm warning better than the optimistic candidate-cold screen. Therefore the correct decision is to keep `chain2_slot_analysis_next8` as a research primitive, not a production default.
+The candidate-cold number gives a small local win for the old two-block slot chain, but the grouped/warm number gives a small loss, and prior hosted duplicate-index probes matched the grouped/warm warning better than the optimistic candidate-cold screen. Therefore the correct decision for `chain2_slot_analysis_next8` is to keep it as a research primitive, not a production default.
 
 Scaling made the decision clearer:
 
@@ -770,7 +770,9 @@ Scaling made the decision clearer:
 | `chain3_slot_analysis_next8` | 3 x 21 | 57.148 | 5.859 | 646 | 31763 | 1674 |
 | `chain4_slot_analysis_next8` | 3 x 24 | 53.088 | 7.235 | 800 | 40089 | 2016 |
 
-This is the direct answer to the “geometric tail” idea. A tail like `4 x K8 -> 2 x K8 -> 1 x K8 -> K1` can reduce unfinished-work risk near timeout, but it only helps after the multi-block candidate itself is more economical than separate K8s. In the measured GPT-OSS path, 2 x K8 is roughly break-even/slightly worse and 3-4 block chains degrade. So geometric ordering is not the missing 25-point source right now.
+The new exact-phrase rerun changed the 2-block conclusion but not the high-block conclusion. Plain exact-phrase continuations underfired at 11-13 posts, but a strict continuation that names the observed failure point -- “do not stop after 5; after 5 call 6, then 7, then 8” -- produced exact 16-post candidates. Candidate-cold n=10 was `16 x 10`, `69.641 raw/s`, versus `64.399 raw/s` for the single exact-phrase control. In a same-run anchor screen it scored `70.564 raw/s` versus `69.049` for single exact-phrase and `56.547` for the hosted numeric fallback. However, force-cold was negative (`33.855` versus `37.262` for single exact-phrase), and 4-block scaling underfired (`23` posts instead of `32`) and slowed to `60.687 raw/s`.
+
+This is the direct answer to the “geometric tail” idea. A tail like `4 x K8 -> 2 x K8 -> 1 x K8 -> K1` can reduce unfinished-work risk near timeout, but it only helps after the multi-block candidate itself is more economical than separate K8s. In the updated GPT-OSS path, exact 2 x K8 is locally plausible and now belongs in the hosted online selector, while 4 x K8 and higher still degrade. So geometric ordering is still not the missing 25-point source right now.
 
 The reset/initialization intuition is also mostly answered by these numbers. The trusted replay does create/reset an environment per candidate, but the model is already loaded and the expensive part is the model generation. If candidate reset were a large cost, the exact 2 x K8 chain should beat two separate K8 candidates clearly. It does not: the second block replaces a long new user prompt with a short continuation, but it also carries the entire previous K8 trace in history. The logical prompt grows from 8732 tokens to 20672 tokens, and eval tokens grow from 566 to 1213 in grouped/warm replay. That extra history cancels the hoped-for reset saving.
 
@@ -787,9 +789,10 @@ So for Gemma, the continuation forms both underfire and lose raw/s versus the on
 
 Operational decision:
 
-- Keep single-message K8 as the production unit for both current hosted-proven paths.
+- Keep single-message K8 as the static production fallback for both current hosted-proven paths.
+- Add the exact-phrase `chain2_guard5` candidate only to the GPT hosted online selector, where the live T4 backend can reject it if it is slower or non-exact.
 - Keep `chain2_slot_analysis_next8` in `scripts/profile_sequence_arena.py` as a documented research primitive.
-- Do not submit multi-message/geometric-tail variants unless a future local run beats the single K8 control by at least a few percent in grouped/warm and candidate-cold, with exact post counts preserved.
+- Do not submit 4x or geometric-tail variants unless a future local run beats the single K8 control in both grouped/warm and candidate-cold, with exact post counts preserved.
 - Treat no-final compression as non-default despite its positive 107.850 hosted score; the numeric path is stronger and the local recheck says no-final is K6-prone.
 
 ## 10. Hardware and inference-cost analysis
@@ -913,14 +916,14 @@ The current `attacks/05_validation_fill/attack.py` does the following:
 1. Warm up the live environment to avoid counting model-load latency as candidate cost.
 2. Sample candidates to classify the row as slow or fast by observed latency.
 3. On the latency-classified slow row, use GPT duplicate K8 rather than K1.
-4. With `GPT_ONLINE_SELECT_K8=True`, probe the developer-low exact-phrase bare-opaque challenger against the hosted-proven `current_numeric_1_8` fallback on the live backend. Reject non-K8 evidence and pick the faster exact-K8 arm; broader selector arms are available only by explicit config.
+4. With `GPT_ONLINE_SELECT_K8=True`, probe the developer-low exact-phrase bare-opaque family, including the 2-message `chain2_guard5` candidate, against the hosted-proven `current_numeric_1_8` fallback on the live backend. Reject non-exact evidence and pick the faster post/sec arm; broader selector arms are available only by explicit config.
 5. Fill the GPT replay bank with the selected duplicate K8 prompt at `GPT_DUPLICATE_K8_BANK_INDEX=11565`; if selector evidence is unavailable, fall back to the hosted-proven `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"` anchor.
 6. For the fast Gemma row, use `USE_GEMMA_K8_O=True` with `GEMMA_K8_O_VARIANT="r57"`.
 7. Live-validate a thin Gemma R57 prefix with `GEMMA_K8_O_VALIDATE_N=2`, then pad with the duplicate R57 K8-O bank to `GEMMA_K8_O_BANK_N=500`.
 8. Trim pathological K1/K8 tails using the 1.30 median multiplier where applicable.
 9. Append cheap untested same-template tail candidates only where appropriate so replay does not run out of work.
 
-The code also contains support for `GPT_DUPLICATE_K8_TEMPLATE="current_nofinal"` and bare/proto/system-low selector arms. No-final is retained as an experiment only: hosted score 107.850 was positive but below numeric, and local replay says it can stop at K6. Numeric is hosted-proven at 109.770. The current fallback default is therefore `current_numeric_1_8`; bare-opaque, proto, system-low, and developer-low exact-phrase variants are selector-only until hosted evidence proves transfer.
+The code also contains support for `GPT_DUPLICATE_K8_TEMPLATE="current_nofinal"` and bare/proto/system-low selector arms. No-final is retained as an experiment only: hosted score 107.850 was positive but below numeric, and local replay says it can stop at K6. Numeric is hosted-proven at 109.770. The current fallback default is therefore `current_numeric_1_8`; bare-opaque, proto, system-low, developer-low exact-phrase, and exact-phrase `chain2_guard5` variants are selector-only until hosted evidence proves transfer.
 
 The 500-entry duplicate banks are not the current bottleneck. A duplicate K8 candidate scores at most 0.65 normalized points for the first unique cell and about 0.64 afterward. The 109.770 public anchor means the two public model rows sum to 219.540 normalized points, which is only about 343 duplicate K8 candidates even under the impossible assumption that one row produced all public points. Therefore `GPT_DUPLICATE_K8_BANK_N=500` and `GEMMA_K8_O_BANK_N=500` already overfeed replay for the current score range and for the 130-137 target range. The remaining gap has to come from per-candidate density, hosted transfer, or a different scoring predicate, not from increasing the bank to 1000.
 
@@ -995,7 +998,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **Broad/mixed K8 slow-row attempt** - failed hosted. Evidence: submission `55562414` scored 65.070 public. Decision: do not mix unverified K8 variants.
 - **GPT current no-final duplicate** - positive but non-default. Evidence: hosted `55698927` scored 107.850, but local recheck was K6-prone. Decision: keep as evidence only; numeric is better.
 - **GPT Harmony system-low numeric** - pending/promising. Evidence: grouped/warm n=20 was 20 x K8 at 64.252 raw/s versus 56.310 numeric; candidate-cold n=20 was 55.686 versus 52.104 numeric. Decision: submitted `55717477`; promote only if hosted beats 109.770.
-- **GPT hosted online selector** - implemented/submitted, then narrowed for the next prepared notebook. Evidence: forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; the current default races only developer-low exact-phrase bare-opaque against hosted-proven `current_numeric_1_8`, measures fallback first, and uses 3-probe steady-state scoring. Broader selector arms remain explicit-config/pending hosted ablations. Decision: use the narrowed selector as a hedge around local-to-host timing transfer while preserving numeric as the fallback.
+- **GPT hosted online selector** - implemented/submitted, then narrowed for the next prepared notebook. Evidence: forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; after adding exact-phrase `chain2_guard5`, forced-chain smoke returned raw score 770 for 3 duplicate 16-post candidates, and production-like 3-probe selector smoke selected the 2-message chain. The current default measures hosted-proven `current_numeric_1_8` first, then races exact-phrase chain2 and single exact-phrase arms with 3-probe steady-state scoring. Broader selector arms remain explicit-config/pending hosted ablations. Decision: use the narrowed selector as a hedge around local-to-host timing transfer while preserving numeric as the fallback.
 - **GPT near-bare proto-literal queue** - selector-only. Evidence: grouped n=20 was 20 x K8 at 66.464 raw/s; candidate-cold n=20 was 20 x K8 at 55.705 raw/s. Decision: add to hosted selector, not blind default.
 - **GPT bare-opaque digit queue** - selector-family evidence, not broad default. Evidence: current bare-opaque candidate-cold n=20 was 20 x K8 at 61.995 raw/s; system-low bare-opaque candidate-cold n=20 was 20 x K8 at 63.824 raw/s; developer-low exact-phrase bare-opaque was 20 x K8 at 64.359 raw/s with lower completion tokens. Decision: keep only the exact-phrase developer-low bare-opaque arm in the next default selector; other bare/system/proto variants remain explicit-config/pending ablation until hosted transfer is proven.
 - **GPT short-prefix exact-ban compression** - negative/no promotion. Evidence: shortened opaque-ID prefix stayed exact K8, but candidate-cold n=10 was 64.576 raw/s versus 65.420 for the existing exact-phrase arm; force-cold n=3 was only a small mode-specific win. Decision: keep existing exact-phrase wording.
@@ -1018,7 +1021,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **Tainted web/email to dangerous action** - public dead/marginal. Evidence: guardrail blocks dangerous operation after untrusted source. Decision: private-transfer hedge only.
 - **Naive multi-post one prompt** - dead. Evidence: GPT-OSS re-enters reasoning; Gemma usually stops at one. Decision: do not use.
 - **GPT-OSS K8 forged continuation** - confirmed if current-only and banked. Evidence: local 1.117x raw/s plus hosted 96.010/102.215 public family. Decision: keep; tune only with strict gates.
-- **Exact multi-block K8** - research-only. Evidence: `chain2_slot_analysis_next8` can do 16/16, but grouped/warm raw/s was 58.714 versus 59.754 control. Decision: do not promote; 3-4 block scaling degrades.
+- **Exact multi-block K8** - selector-only for the new exact-phrase 2x case, research-only beyond that. Evidence: old `chain2_slot_analysis_next8` was not economical; new `chain2_exactphrase_analysis_next8_guard5` was 16/16 in candidate-cold n=10 and scored 69.641 raw/s versus 64.399 for single exact-phrase, but force-cold lost and 4x underfired. Decision: include 2x guard only in the online selector; do not promote 4x/geometric tails.
 - **Geometric tail** - not currently useful. Evidence: requires multi-block K8 to beat separate K8 first; current data does not. Decision: drop for now except as replay-timeout theory.
 - **Gemma K8-O/R57 native-anchor prompt** - hosted-proven when narrowed. Evidence: R57 plus current GPT duplicate scored 106.250; early broad mixes scored 65.210. Decision: preserve R57 path; change only narrowly.
 - **Gemma R57 syntax-token removal** - failed gate. Evidence: bare data failed; bare/empty URL slower or unstable; no-suffix was grouped K8 but candidate-cold K7. Decision: do not submit; keep R57 anchors.
@@ -1091,12 +1094,13 @@ The key engineering mistake to avoid is optimizing character count when completi
 ## 22. Concrete next-run plan
 
 1. Preserve `55702490` / 109.770 as the rollback anchor: GPT numeric K8 plus Gemma R57.
-2. Run `python -X utf8 scripts/check_hosted_ablation_status.py` to monitor `55717477`, `55718913`, `55720868`, and `55721360`. If a hosted selector/system-low/bare-opaque variant beats 109.770, promote that exact submitted family; if all lose, roll the GPT fallback back to `current_numeric_1_8`.
-3. Do not promote developer-low numeric despite candidate-cold speed; grouped/warm replay collapses to K7.
-4. Do not promote multi-message/geometric-tail variants. The best exact 2 x K8 chain is roughly break-even locally and higher block counts degrade.
-5. Drop repeat-to-cap, cache-primed replay, commentary tool-header prefill, data-suffix state queues, and late-unique K8 for now. They were directly tested and lost locally.
-6. If continuing compression, stay inside the hosted-proven GPT numeric/current-template family or the already submitted bare-opaque selector family; require exact K8 plus raw/s improvement, not shorter text alone.
-7. Start a separate private-transfer hedge track. Do not mix speculative private candidates into the main public-throughput branch until they have a bounded budget and a stated reason to survive `persistent_provenance_private`.
+2. Run `python -X utf8 scripts/check_hosted_ablation_status.py` to monitor `55717477`, `55718913`, `55720868`, and `55721360`. If a hosted selector/system-low/bare-opaque variant beats 109.770, promote that exact submitted family; if all lose, keep the static GPT fallback at `current_numeric_1_8`.
+3. Submit the narrowed selector with exact-phrase `chain2_guard5` only when a submission slot is available; promote chain2 only if hosted scoring beats 109.770.
+4. Do not promote developer-low numeric despite candidate-cold speed; grouped/warm replay collapses to K7.
+5. Keep exact-phrase `chain2_guard5` as a GPT online-selector arm only. Do not promote 4x/geometric-tail variants; higher block counts degrade or underfire.
+6. Drop repeat-to-cap, cache-primed replay, commentary tool-header prefill, data-suffix state queues, and late-unique K8 for now. They were directly tested and lost locally.
+7. If continuing compression, stay inside the hosted-proven GPT numeric/current-template family or the already submitted bare-opaque selector family; require exact K8 plus raw/s improvement, not shorter text alone.
+8. Start a separate private-transfer hedge track. Do not mix speculative private candidates into the main public-throughput branch until they have a bounded budget and a stated reason to survive `persistent_provenance_private`.
 
 ## 23. Source map
 
@@ -1230,17 +1234,18 @@ Profile Gemma parser fixed-point behavior:
 
 The confirmed hosted state is strong but not final. We reached 86.805 by aligning with the open public optimum: live validation-fill, replay-safe sizing, and GPT-OSS reasoning-token suppression. We then reached 96.010 by proving a controlled GPT-OSS current-only K8 verified bank on hosted public replay. Subsequent duplicate-topology and Gemma R57 work pushed the confirmed public score to 106.250, and numeric GPT K8 raised the confirmed anchor to 109.770. The failed 83.745, 65.070, 66.425, 89.515, and 97.625 submissions are equally important: uncontrolled branch changes, slot-label transfer, and cache-sensitive duplicate indices can erase the gain.
 
-The current local state has several clean GPT candidates above the 109.770 hosted anchor, but none is hosted-proven yet: system-low numeric, current/system/developer bare-opaque selector arms, and proto literal in some grouped settings. These are already covered by pending hosted refs `55717477`, `55718913`, `55720868`, and `55721360`. No-final is now known positive but weaker than numeric. Developer-low numeric is not safe because grouped replay turns it into K7. The exact multi-message/geometric-tail experiments found one technically working 2 x K8 GPT continuation, but it is not a clear raw/s improvement and it worsens as blocks scale. The reason is concrete: fresh environment reset is not the dominant cost; the second block carries the whole previous K8 trace in history, so prompt/eval load grows enough to cancel the shorter continuation message. Repeat-to-cap, cache-primed replay, data-suffix state queues, tool-header prefill, and late uniqueness were directly tested and should be considered negative for now.
+The current local state has several clean GPT candidates above the 109.770 hosted anchor, but none is hosted-proven yet: system-low numeric, current/system/developer bare-opaque selector arms, proto literal in some grouped settings, and now the exact-phrase `chain2_guard5` 2 x K8 candidate. The older hosted refs `55717477`, `55718913`, `55720868`, and `55721360` cover the pre-chain selector/system-low/bare-opaque ablations; the new chain2 selector still needs its own hosted result before promotion. No-final is known positive but weaker than numeric. Developer-low numeric is not safe because grouped replay turns it into K7. The updated exact multi-message experiments found a real 2 x K8 GPT continuation: strict guard-5 wording produced 16/16 posts and cleared the candidate-cold local gate. The caveat is concrete: force-cold loses, and 4 x K8 underfires because later blocks carry too much previous trace history. Therefore chain2 belongs in the online selector, not as a static fallback, and geometric tails remain unattractive. Repeat-to-cap, cache-primed replay, data-suffix state queues, tool-header prefill, and late uniqueness were directly tested and should be considered negative for now.
 
 Private scoring remains genuinely uncertain because the private guardrail implementation is hidden and may punish the exact public primitive.
 
 The immediate engineering plan should be:
 
 1. Treat `55702490` / 109.770 as the current confirmed production anchor.
-2. Treat `55717477`, `55718913`, `55720868`, and `55721360` as hosted ablations around GPT system-low/selector/bare-opaque transfer. If one beats 109.770, promote that exact submitted family; if all lose, roll back the GPT fallback to `current_numeric_1_8`.
-3. Keep no-final and developer-low numeric out of production unless new evidence fixes their K-loss behavior.
-4. Preserve Gemma R57; change only one narrow variable at a time around that prompt family.
-5. Keep private-transfer work separate from public throughput optimization, and insert any future private hedge near the replay head only after assigning an explicit public-score budget.
+2. Treat `55717477`, `55718913`, `55720868`, and `55721360` as hosted ablations around GPT system-low/selector/bare-opaque transfer. If one beats 109.770, promote that exact submitted family; if all lose, roll the static GPT fallback back to `current_numeric_1_8`.
+3. Submit the narrowed selector with exact-phrase `chain2_guard5` only when a submission slot is available; promote it only if hosted scoring beats 109.770.
+4. Keep no-final and developer-low numeric out of production unless new evidence fixes their K-loss behavior.
+5. Preserve Gemma R57; change only one narrow variable at a time around that prompt family.
+6. Keep private-transfer work separate from public throughput optimization, and insert any future private hedge near the replay head only after assigning an explicit public-score budget.
 """
 
 

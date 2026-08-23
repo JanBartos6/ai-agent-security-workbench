@@ -1331,8 +1331,9 @@ Validation:
   the bounded-budget case where the fallback is measured but challengers cannot
   complete their full probe set.
 - Unit test `test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor`
-  now asserts that the default selector list contains only the exact-phrase
-  challenger plus numeric fallback and that `GPT_ONLINE_SELECT_MAX_S=900.0`.
+  now asserts that the default selector list contains the exact-phrase
+  `chain2_guard5` challenger, the single-block exact-phrase challenger, numeric
+  fallback, and that `GPT_ONLINE_SELECT_MAX_S=900.0`.
 - Bounded GPT live-fill smoke with one classification sample, two selector arms,
   three selector probes, and a three-candidate replay cap returned:
   `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
@@ -1346,6 +1347,66 @@ Interpretation: this is a production-path improvement for the next hosted
 selector submission, not proof that the exact-phrase arm transfers.  The
 fallback remains the hosted-proven `current_numeric_1_8` anchor if selector
 evidence is incomplete.
+
+### Exact-phrase 2xK8 chain2 guard
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-candidate-cold-n3.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-styles-candidate-cold-n3.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-nofinal-chain2-candidate-cold-n3.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-multi2-candidate-cold-n3.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-candidate-cold-n3.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain4-guard5-candidate-cold-n2.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-confirm-candidate-cold-n10.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-anchor-candidate-cold-n5.json`,
+and
+`runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-force-cold-n3.json`.
+
+Goal: re-test exact multi-block K8 using the current local-best
+developer-low exact-phrase K8 unit, not the older slot/current continuations.
+Plain continuations still underfired:
+
+| Arm | Posts distribution | Raw/s | Decision |
+| --- | --- | ---: | --- |
+| `chain2_exactphrase_analysis_next8_duplicate` | `13x3` | 65.359 | reject, not exact 2xK8 |
+| `chain2_exactphrase_analysis_repeatblock_duplicate` | `11x3` | 60.779 | reject |
+| `chain2_exactphrase_analysis_repeat8_duplicate` | `12x3` | 62.658 | reject |
+| `multi2_exactphrase_duplicate` | `13x3` | 59.848 | reject |
+
+The successful continuation explicitly guards the observed failure point:
+after URL `5`, call `6`, then `7`, then `8`.
+
+| Check | Single exact-phrase raw/s | `chain2_guard5` raw/s | Reliability | Decision |
+| --- | ---: | ---: | --- | --- |
+| candidate-cold n=3 | 63.816 | 65.594 | both exact | positive screen |
+| candidate-cold n=10 | 64.399 | 69.641 | single `8x10`; chain `16x10` | positive, +8.1% over single exact-phrase |
+| same-run anchor n=5 | numeric 56.547; single exact 69.049 | 70.564 | all exact | chain beats numeric by +24.8%, single exact by +2.2% in this run |
+| force-cold n=3 | 37.262 | 33.855 | both exact | transfer-risk negative |
+| 4x candidate-cold n=2 | 64.387 single exact | 60.687 for `chain4_guard5` | chain only `23x2`, not 32 | reject scaling beyond 2x |
+
+Production integration is selector-only.  `current_numeric_1_8` remains the
+hosted-proven fallback, while the online selector can now probe the 2-message
+`developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5` candidate and
+choose it only if the hosted backend shows exact 16-post traces and better
+post/sec.  The selector/fill path was changed to support candidate message
+tuples and exactness thresholds proportional to the number of messages.
+
+SDK smoke checks:
+
+- Forced chain2 template, one validation probe, three replay candidates:
+  `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
+  `score_normalized=3.85`, `attack_elapsed_s=22.348`.
+- Online selector with one probe selected a one-message arm (`score_raw=386.0`),
+  which is acceptable because one noisy probe can favor single exact-phrase.
+- Online selector with production-like three probes and one warmup selected the
+  chain2 arm: `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
+  `score_normalized=3.85`, `attack_elapsed_s=44.258`.
+
+Interpretation: this is the first exact multi-message GPT candidate that clears
+the local candidate-cold gate.  It is still not a static default because
+force-cold is negative and 4x does not scale.  It belongs in the hosted online
+selector, where the T4 row can reject it if prefix reuse differs from the local
+normal path.
 
 ### Hosted row-contribution inference from completed scores
 
