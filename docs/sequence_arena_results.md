@@ -1401,6 +1401,13 @@ SDK smoke checks:
 - Online selector with production-like three probes and one warmup selected the
   chain2 arm: `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
   `score_normalized=3.85`, `attack_elapsed_s=44.258`.
+- Kaggle notebook prepared and Save & Run completed as
+  `janbartos/gpt-chain2-selector-gemma-r57` version 1
+  ([kernel](https://www.kaggle.com/code/janbartos/gpt-chain2-selector-gemma-r57)).
+  The competition submit call was rejected only because Kaggle reported the
+  daily team allowance of 5 submissions had already been used, with reset about
+  3 hours away.  Local artifact:
+  `runs/kaggle-gpt-chain2-selector-gemma-r57/gpt-chain2-selector-gemma-r57.ipynb`.
 
 Interpretation: this is the first exact multi-message GPT candidate that clears
 the local candidate-cold gate.  It is still not a static default because

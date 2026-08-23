@@ -127,13 +127,19 @@ def main() -> int:
             raise SystemExit(f"kernel did not complete cleanly; status={wait_state}")
 
     if args.submit:
-        resp = api.competition_submit_code(
-            file_name="submission.csv",
-            message=args.message,
-            competition=COMPETITION,
-            kernel=kernel,
-            kernel_version=int(result["version"]),
-        )
+        try:
+            resp = api.competition_submit_code(
+                file_name="submission.csv",
+                message=args.message,
+                competition=COMPETITION,
+                kernel=kernel,
+                kernel_version=int(result["version"]),
+            )
+        except HTTPError as exc:
+            response = getattr(exc, "response", None)
+            if response is not None:
+                print("kaggle submit HTTP error body:", response.text[:4000])
+            raise
         print("submit response:", json.dumps(resp.to_dict() if hasattr(resp, "to_dict") else str(resp)))
     return 0
 
