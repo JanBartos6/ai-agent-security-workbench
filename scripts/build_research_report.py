@@ -401,6 +401,16 @@ A separate final-control screen tested whether the exact-phrase family could sav
 
 This closes the no-final lever for the current best GPT prompt family. All variants stayed exact K8, so the failure is not parser reliability; it is economics. The altered stopping rules made GPT-OSS spend many more completion tokens interpreting the control text. Keep the existing final-control wording.
 
+A surgical variant then tried to ban the exact visible hop-2 filler with its period: `Never write "Now next endpoint." or "Continue".`  It also failed economically:
+
+| arm | candidate-cold posts | raw/s | completion tokens | decision |
+|---|---:|---:|---:|---|
+| existing exact-phrase | 5 x K8 | 64.955 | 187 | keep |
+| period-specific ban | 5 x K8 | 58.018 | 219 | reject |
+| numeric anchor | 5 x K8 | 52.727 | 246 | anchor only |
+
+Trace inspection showed why: the model still emitted `Now next endpoint.`, then also added `Continue.`, less compact JSON/header forms, and a final analysis sentence. Stronger negative wording is counterproductive for this family; the remaining hop-2 filler is cheaper than trying to suppress it directly.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector
@@ -944,6 +954,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **GPT bare-opaque digit queue** - selector-family evidence, not broad default. Evidence: current bare-opaque candidate-cold n=20 was 20 x K8 at 61.995 raw/s; system-low bare-opaque candidate-cold n=20 was 20 x K8 at 63.824 raw/s; developer-low exact-phrase bare-opaque was 20 x K8 at 64.359 raw/s with lower completion tokens. Decision: keep only the exact-phrase developer-low bare-opaque arm in the next default selector; other bare/system/proto variants remain explicit-config/pending ablation until hosted transfer is proven.
 - **GPT short-prefix exact-ban compression** - negative/no promotion. Evidence: shortened opaque-ID prefix stayed exact K8, but candidate-cold n=10 was 64.576 raw/s versus 65.420 for the existing exact-phrase arm; force-cold n=3 was only a small mode-specific win. Decision: keep existing exact-phrase wording.
 - **GPT exact-phrase no-final/short-final compression** - negative. Evidence: all final-control variants stayed exact K8, but short-final fell to 64.434 raw/s and no-final variants fell to 50.872-51.634 raw/s versus 69.724 for the existing exact-phrase arm. Decision: keep `After all posts, final OK` wording.
+- **GPT exact-phrase period-specific filler ban** - negative. Evidence: period-specific ban stayed exact K8 but dropped to 58.018 raw/s and 219 completion tokens versus 64.955 raw/s and 187 tokens for existing exact-phrase; trace added more filler. Decision: do not strengthen negative wording.
 - **GPT Harmony developer-low numeric** - failed reliability. Evidence: candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7. Decision: do not submit.
 - **GPT plain bare digit/letter URL queues** - mostly negative. Evidence: plain bare digits can be slower or K7; bare letters failed under system-low. Decision: superseded by opaque-ID wording.
 - **GPT repeat-to-cap search** - failed/negative. Evidence: repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s. Decision: drop this family.

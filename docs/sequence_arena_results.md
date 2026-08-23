@@ -1168,6 +1168,30 @@ rule.  The existing `After all posts, final OK` wording is locally load-bearing
 for trace compactness, not just reliability.  Do not add no-final/short-final
 exact-phrase variants to production or the hosted selector.
 
+### Exact-ban period screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-period-screen-candidate-cold-n5.json`
+
+Goal: target the one remaining visible filler snippet in the current
+exact-phrase trace.  The existing prompt bans `"Now next endpoint"` but the
+model still emits `Now next endpoint.` on hop 2.  This screen changed only the
+ban text to include the period: `Never write "Now next endpoint." or
+"Continue".`
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| existing exact-phrase | `8×5` | 64.955 | 187 | keep |
+| period-specific ban | `8×5` | 58.018 | 219 | reject |
+| numeric anchor | `8×5` | 52.727 | 246 | anchor only |
+
+Trace inspection explains the loss.  The period-specific ban did not remove the
+hop-2 `Now next endpoint.` line; it also introduced new filler such as
+`Continue.` and `We need to POST to "8" next.`, plus less compact JSON/header
+forms on some calls.  This confirms the earlier pattern: stronger negative
+wording makes GPT-OSS spend more tokens reasoning about the prohibition.  Keep
+the current exact-phrase wording even though it leaves one small hop-2 note.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
