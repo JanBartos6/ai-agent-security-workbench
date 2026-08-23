@@ -379,6 +379,16 @@ A direct cache-mode sensitivity check then compared the hosted-proven numeric du
 
 This matters for transfer interpretation. The exact-phrase arm is not just a cross-candidate duplicate-cache artifact: it remains roughly 23% faster than numeric when candidate-cold resets remove cross-candidate reuse. But when force-cold removes normal within-candidate prefix reuse across the eight hops, the advantage shrinks to about 4.5%. So the selector arm's local upside depends on the hosted T4 path preserving ordinary llama.cpp prefix reuse inside a multi-hop candidate. That is expected from the public runtime path, but hosted scoring remains the gate.
 
+A follow-up tried to compress the exact-phrase arm itself. The best hypothesis kept the exact phrase ban but shortened the opaque-ID stabilizer from `The url argument is an opaque string ID, not a web address; use each value exactly.` to `url is opaque ID; use exact strings.`:
+
+| check | existing exact-phrase raw/s | short-prefix exact-ban raw/s | reliability | decision |
+|---|---:|---:|---|---|
+| candidate-cold n=5 | 65.322 | 65.421 | both 5/5 K8 | tied/noise |
+| force-cold n=3 | 35.789 | 36.416 | both 3/3 K8 | short prefix helps only in the no-cache stress mode |
+| candidate-cold n=10 | 65.420 | 64.576 | both 10/10 K8 | existing exact-phrase wins |
+
+So this is not a production change. The short prefix saves roughly 80 logical prompt tokens and 9 candidate-cold eval tokens, but in the stronger candidate-cold confirmation it adds one completion token and loses about 1.3% raw/s. The force-cold win is too small and too mode-specific to justify widening the hosted selector while the existing exact-phrase selector submission is still pending.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector

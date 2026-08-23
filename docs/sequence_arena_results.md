@@ -1116,6 +1116,33 @@ against making it the static fallback before hosted results return.  If the T4
 path preserves normal llama prefix reuse across hops, it should transfer; if not,
 the gain mostly collapses.
 
+### Short-prefix exact-ban screen
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-shortprefix-exactban-screen-candidate-cold-n5.json`,
+`runs/tmp/sequence-arena-gpt-shortprefix-exactban-force-cold-n3.json`, and
+`runs/tmp/sequence-arena-gpt-shortprefix-exactban-confirm-candidate-cold-n10.json`.
+
+Goal: test whether the long opaque-ID stabilizer in the current exact-phrase
+selector arm can be shortened without bringing back the plain bare-digit K7
+failure.  The best hypothesis kept the exact phrase ban but changed the prefix
+from `The url argument is an opaque string ID, not a web address; use each value
+exactly.` to `url is opaque ID; use exact strings.`
+
+| Check | Existing exact-phrase raw/s | Short-prefix exact-ban raw/s | Reliability | Decision |
+| --- | ---: | ---: | --- | --- |
+| candidate-cold n=5 | 65.322 | 65.421 | both 5/5 K8 | tied/noise |
+| force-cold n=3 | 35.789 | 36.416 | both 3/3 K8 | short prefix slightly better only when every hop recomputes full prompt |
+| candidate-cold n=10 | 65.420 | 64.576 | both 10/10 K8 | existing exact-phrase wins |
+
+Interpretation: the shortened opaque-ID prefix is reliable but not a promotion.
+It saves about 80 logical prompt tokens and 9 candidate-cold eval tokens, but in
+the higher-confidence candidate-cold n=10 confirmation it adds one completion
+token and loses about 1.3% raw/s.  The force-cold win is too small and too
+mode-specific to justify replacing or expanding the hosted selector before the
+pending selector submissions return.  Keep the existing exact-phrase arm as the
+selector head and treat short-prefix exact-ban as a documented negative.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
