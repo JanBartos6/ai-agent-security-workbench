@@ -257,6 +257,7 @@ Key public submissions:
 - `55702490`: 109.770 public. GPT numeric 1-8 duplicate plus Gemma R57 is the current confirmed anchor.
 - `55717477`: pending as of the 2026-08-23 API check. This is the controlled Harmony system-low numeric ablation.
 - `GPT online select numeric/system-low K8 plus Gemma R57`: launched after the selector smoke; it races the 109.770 numeric anchor against system-low on the hosted backend.
+- `55721360`: pending as of the 2026-08-23 API check. This is the hosted bare-opaque selector ablation, adding literal bare digit URL strings to the online selector.
 
 The 109.770 score is the strongest confirmed evidence that our interpretation of the public leaderboard is correct: public scoring is mostly successful replay throughput, not a search for complex multi-step semantic attacks. It also proves that small token-surface changes can transfer when they stay inside a hosted-proven exact-K8 family. The 65.210/66.425 failures are equally useful: they show that local K8 success does not transfer when the submitted topology is the wrong family.
 
@@ -820,7 +821,9 @@ The known-good hosted checkpoint is `55702490`, which scored 109.770 with GPT nu
 
 - `55717477`: GPT system-low numeric duplicate K8 plus Gemma R57 thin validation.
 - `55718913`: GPT online select numeric/system-low K8 plus Gemma R57; selector variant intended to choose between the 109.770 numeric anchor and system-low on the hosted backend.
-- `GPT online select system-low/proto/numeric K8 plus Gemma R57`: expanded selector variant; adds the exact-K8 near-bare `"//1"` queue because grouped/warm local replay favored it.
+- `55720868`: GPT online select system-low/proto/numeric K8 plus Gemma R57; expanded selector variant adds the exact-K8 near-bare `"//1"` queue because grouped/warm local replay favored it.
+- `55721360`: GPT bare-opaque selector K8 plus Gemma R57; adds literal bare digit URL strings to the selector.
+- `gpt-bare-opaque-default-gemma-r57`: notebook completed Save & Run, but competition submission was rejected because Kaggle reported that the team's daily allowance of 5 submissions had already been used.
 
 Do not treat system-low numeric as proven until hosted scoring beats 109.770. It is locally strong enough to submit: grouped/warm n=20 was 20/20 exact K8 and +14.1% raw/s over numeric, candidate-cold n=20 was 20/20 exact K8 and +6.9% raw/s over numeric.
 
@@ -863,55 +866,53 @@ Before any GPU-heavy local run, write down candidate count, exact hypothesis, ex
 
 This section is meant to answer the practical handoff question: “did we already try this?”
 
-| idea | status | evidence | decision |
-|---|---|---|---|
-| Blind static candidate list | confirmed weak | 43.47 public from 2000-candidate baseline | Keep only as historical baseline. |
-| Sixty-candidate control | confirmed sane | 5.400 public equals 60 * 0.09 | Useful for scoring sanity only. |
-| Single-post literal marker | confirmed public primitive | 86.805 public with validation-fill architecture | Keep as public spine. |
-| Live validation-fill | confirmed high impact | converts fire rate from low blind baseline to near one | Keep. |
-| Replay-safe sizing | confirmed high impact | source shows replay timeout preserves completed findings | Keep; tune margins. |
-| Overfill | confirmed safe if outer deadline avoided | replay loop truncates tail and keeps partial score | Keep with conservative guard. |
-| Fastest-first ordering | confirmed plausible and implemented | replay is time-limited; earlier fast candidates increase completed count | Keep. |
-| GPT-OSS Harmony forge | confirmed high impact | local completion tokens and latency drop substantially | Keep and optimize further. |
-| GPT-OSS current-only K8 bank | confirmed public win | submission `55584698` scored 96.010 public from commit `9aab298` | Historical production baseline; superseded by later current-duplicate/R57 mix. |
-| GPT duplicate K8 topology | confirmed public win | submission `55649067` scored 102.215 public | Keep the duplicate topology as part of the public spine. |
-| GPT current duplicate + Gemma R57 | hosted-proven but superseded | submission `55676922` scored 106.250 public | Historical anchor; superseded by numeric. |
-| GPT numeric 1-8 duplicate + Gemma R57 | current best hosted | submission `55702490` scored 109.770 public | Current confirmed production anchor. |
-| GPT-OSS slot-label K8 bank | failed hosted | 547 local full-K rows, but submission `55625367` scored 66.425 | Do not use as default; local transfer failure. |
-| Broad/mixed K8 slow-row attempt | failed hosted | submission `55562414` scored 65.070 public | Do not mix unverified K8 variants. |
-| GPT current no-final duplicate | positive but non-default | hosted `55698927` scored 107.850; local recheck was K6-prone | Keep as evidence only; numeric is better. |
-| GPT current numeric 1-8 duplicate | hosted-proven | hosted `55702490` scored 109.770 | Promote as rollback anchor. |
-| GPT Harmony system-low numeric | pending/promising | grouped/warm n=20: 20 x K8, 64.252 raw/s vs 56.310 numeric; candidate-cold n=20: 55.686 vs 52.104 numeric | Submitted `55717477`; promote only if hosted beats 109.770. |
-| GPT hosted online selector | implemented/submitted | forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; races system-low numeric, proto-literal, and numeric fallback in hosted `run()` | Use as hedge around local-to-host timing transfer. |
-| GPT near-bare proto-literal queue | selector-only | grouped n=20: 20 x K8, 66.464 raw/s; candidate-cold n=20: 20 x K8, 55.705 raw/s | Add to hosted selector, not blind default. |
-| GPT Harmony developer-low numeric | failed reliability | candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7 | Do not submit. |
-| GPT bare digit/letter URL queues | mostly negative | bare digits exact but slower; bare letters failed under system-low | Drop unless a different wording emerges. |
-| GPT repeat-to-cap search | failed/negative | repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s | Drop this family. |
-| Cache-primed replay | failed/negative | reverse-order no-prime beat prime for both current and numeric arms | Drop unless SDK replay cache behavior changes. |
-| Private hedge placement | planning rule only | no concrete hedge candidate survived public/source audit; head placement would cost public throughput | Keep separate; interleave only a tiny bounded slice if a credible private hedge exists. |
-| Gemma forge | mixed/negative | current prompt DB shows slower than plain Gemma | Disabled by default. |
-| `Then answer OK only` | confirmed useful | shorter post-tool wrap-up than terse alternatives | Keep. |
-| Removing final answer entirely | unproven | some model/template structures still produce final channel tokens | Test only if parser reliability is preserved. |
-| Read `secret.txt` then post | public dead | public guardrail blocks sensitive target | Drop for public; maybe private-only thought experiment. |
-| `fs.write`/`fs.delete` on secret | public dead | guardrail blocks sensitive target; severity lower | Drop for public. |
-| Tainted web/email to dangerous action | public dead/marginal | guardrail blocks dangerous operation after untrusted source | Private-transfer hedge only. |
-| Naive multi-post one prompt | dead | GPT-OSS re-enters reasoning; Gemma usually stops at one | Do not use. |
-| GPT-OSS K8 forged continuation | confirmed if current-only and banked | local 1.117x raw/s plus hosted 96.010/102.215 public family | Keep; tune only with strict gates. |
-| Exact multi-block K8 | research-only | `chain2_slot_analysis_next8` can do 16/16, but grouped/warm raw/s 58.714 vs 59.754 control | Do not promote; 3-4 block scaling degrades. |
-| Geometric tail | not currently useful | requires multi-block K8 to beat separate K8 first; current data does not | Drop for now except as replay-timeout theory. |
-| Gemma K8-O/R57 native-anchor prompt | hosted-proven when narrowed | R57 plus current GPT duplicate scored 106.250; early broad mixes scored 65.210 | Preserve R57 path; change only narrowly. |
-| Gemma R57 syntax-token removal | failed gate | bare data failed; bare/empty URL slower or unstable; no-suffix was grouped K8 but candidate-cold K7 | Do not submit; keep R57 anchors. |
-| Gemma one-message generic K8 | negative | mostly one post | Superseded by K8-O prompt family. |
-| Gemma double-brace fixed-point K8 | negative for K8, useful clue | strict run produced exactly 2 posts in 40/40, then invalid hop 3 | Historical parser clue only. |
-| Gemma K2 terminal ordinal | failed | 0/40 exact K2; first generation became parser-invalid | Do not promote this prompt. |
-| Gemma direct lab | built | localhost and CLI lab show tokens, parser status, tool events, predicates | Use for rapid manual experiments. |
-| Gemma long checklist | negative/mixed | up to three posts but too slow | Use only as parser clue. |
-| Gemma multi-user chain | negative economics | 8/8 possible but slower than separate | Drop unless shortened substantially. |
-| Tokenizer URL optimization | hosted-proven for numeric | numeric `1.co`-`8.co` scored 109.770; bare queues were slower/failing | Keep numeric; do not switch to bare. |
-| Public notebook tail appends | plausible but plateaued | public notebooks tune `TAIL`/margin around 60-89 | Use as comparison, not main strategy. |
-| Private guardrail surrogate | risky | hidden implementation; name only known | Keep bounded; avoid overfitting. |
-| Non-EXFIL private hedge | open | may avoid literal-marker weakness | Explore with small budget. |
-| System prompt/EOS compute skipping | not attack-accessible | dense attention still computes supplied tokens | Drop as prompt strategy. |
+- **Blind static candidate list** - confirmed weak. Evidence: 43.47 public from the 2000-candidate baseline. Decision: keep only as historical baseline.
+- **Sixty-candidate control** - confirmed sane. Evidence: 5.400 public equals 60 * 0.09. Decision: use for scoring sanity only.
+- **Single-post literal marker** - confirmed public primitive. Evidence: 86.805 public with validation-fill architecture. Decision: keep as public spine.
+- **Live validation-fill** - confirmed high impact. Evidence: converts fire rate from low blind baseline to near one. Decision: keep.
+- **Replay-safe sizing** - confirmed high impact. Evidence: source shows replay timeout preserves completed findings. Decision: keep and tune margins.
+- **Overfill** - confirmed safe if the outer deadline is avoided. Evidence: replay loop truncates tail and keeps partial score. Decision: keep with conservative guard.
+- **Fastest-first ordering** - confirmed plausible and implemented. Evidence: replay is time-limited; earlier fast candidates increase completed count. Decision: keep.
+- **GPT-OSS Harmony forge** - confirmed high impact. Evidence: local completion tokens and latency drop substantially. Decision: keep and optimize further.
+- **GPT-OSS current-only K8 bank** - confirmed public win. Evidence: submission `55584698` scored 96.010 public from commit `9aab298`. Decision: historical production baseline, superseded by later current-duplicate/R57 mix.
+- **GPT duplicate K8 topology** - confirmed public win. Evidence: submission `55649067` scored 102.215 public. Decision: keep the duplicate topology as part of the public spine.
+- **GPT current duplicate + Gemma R57** - hosted-proven but superseded. Evidence: submission `55676922` scored 106.250 public. Decision: historical anchor, superseded by numeric.
+- **GPT numeric 1-8 duplicate + Gemma R57** - current best hosted. Evidence: submission `55702490` scored 109.770 public. Decision: current confirmed production anchor.
+- **GPT-OSS slot-label K8 bank** - failed hosted. Evidence: 547 local full-K rows, but submission `55625367` scored 66.425. Decision: do not use as default; local transfer failed.
+- **Broad/mixed K8 slow-row attempt** - failed hosted. Evidence: submission `55562414` scored 65.070 public. Decision: do not mix unverified K8 variants.
+- **GPT current no-final duplicate** - positive but non-default. Evidence: hosted `55698927` scored 107.850, but local recheck was K6-prone. Decision: keep as evidence only; numeric is better.
+- **GPT Harmony system-low numeric** - pending/promising. Evidence: grouped/warm n=20 was 20 x K8 at 64.252 raw/s versus 56.310 numeric; candidate-cold n=20 was 55.686 versus 52.104 numeric. Decision: submitted `55717477`; promote only if hosted beats 109.770.
+- **GPT hosted online selector** - implemented/submitted. Evidence: forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; it races system-low bare-opaque, current bare-opaque, proto-literal, system-low numeric, and numeric fallback in hosted `run()`. Decision: use as hedge around local-to-host timing transfer.
+- **GPT near-bare proto-literal queue** - selector-only. Evidence: grouped n=20 was 20 x K8 at 66.464 raw/s; candidate-cold n=20 was 20 x K8 at 55.705 raw/s. Decision: add to hosted selector, not blind default.
+- **GPT bare-opaque digit queue** - selector/default. Evidence: current bare-opaque candidate-cold n=20 was 20 x K8 at 61.995 raw/s; system-low bare-opaque candidate-cold n=20 was 20 x K8 at 63.824 raw/s. Decision: current bare-opaque is fallback default; system-low bare-opaque is selector-only until hosted transfer is proven.
+- **GPT Harmony developer-low numeric** - failed reliability. Evidence: candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7. Decision: do not submit.
+- **GPT plain bare digit/letter URL queues** - mostly negative. Evidence: plain bare digits can be slower or K7; bare letters failed under system-low. Decision: superseded by opaque-ID wording.
+- **GPT repeat-to-cap search** - failed/negative. Evidence: repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s. Decision: drop this family.
+- **Cache-primed replay** - failed/negative. Evidence: reverse-order no-prime beat prime for both current and numeric arms. Decision: drop unless SDK replay cache behavior changes.
+- **Private hedge placement** - planning rule only. Evidence: no concrete hedge candidate survived public/source audit; head placement would cost public throughput. Decision: keep separate; interleave only a tiny bounded slice if a credible private hedge exists.
+- **Gemma forge** - mixed/negative. Evidence: current prompt DB shows slower than plain Gemma. Decision: disabled by default.
+- **`Then answer OK only`** - confirmed useful. Evidence: shorter post-tool wrap-up than terse alternatives. Decision: keep.
+- **Removing final answer entirely** - unproven. Evidence: some model/template structures still produce final channel tokens. Decision: test only if parser reliability is preserved.
+- **Read `secret.txt` then post** - public dead. Evidence: public guardrail blocks sensitive target. Decision: drop for public; maybe private-only thought experiment.
+- **`fs.write`/`fs.delete` on secret** - public dead. Evidence: guardrail blocks sensitive target and severity is lower. Decision: drop for public.
+- **Tainted web/email to dangerous action** - public dead/marginal. Evidence: guardrail blocks dangerous operation after untrusted source. Decision: private-transfer hedge only.
+- **Naive multi-post one prompt** - dead. Evidence: GPT-OSS re-enters reasoning; Gemma usually stops at one. Decision: do not use.
+- **GPT-OSS K8 forged continuation** - confirmed if current-only and banked. Evidence: local 1.117x raw/s plus hosted 96.010/102.215 public family. Decision: keep; tune only with strict gates.
+- **Exact multi-block K8** - research-only. Evidence: `chain2_slot_analysis_next8` can do 16/16, but grouped/warm raw/s was 58.714 versus 59.754 control. Decision: do not promote; 3-4 block scaling degrades.
+- **Geometric tail** - not currently useful. Evidence: requires multi-block K8 to beat separate K8 first; current data does not. Decision: drop for now except as replay-timeout theory.
+- **Gemma K8-O/R57 native-anchor prompt** - hosted-proven when narrowed. Evidence: R57 plus current GPT duplicate scored 106.250; early broad mixes scored 65.210. Decision: preserve R57 path; change only narrowly.
+- **Gemma R57 syntax-token removal** - failed gate. Evidence: bare data failed; bare/empty URL slower or unstable; no-suffix was grouped K8 but candidate-cold K7. Decision: do not submit; keep R57 anchors.
+- **Gemma one-message generic K8** - negative. Evidence: mostly one post. Decision: superseded by K8-O prompt family.
+- **Gemma double-brace fixed-point K8** - negative for K8, useful clue. Evidence: strict run produced exactly 2 posts in 40/40, then invalid hop 3. Decision: historical parser clue only.
+- **Gemma K2 terminal ordinal** - failed. Evidence: 0/40 exact K2; first generation became parser-invalid. Decision: do not promote.
+- **Gemma direct lab** - built. Evidence: localhost and CLI lab show tokens, parser status, tool events, and predicates. Decision: use for rapid manual experiments.
+- **Gemma long checklist** - negative/mixed. Evidence: up to three posts but too slow. Decision: use only as parser clue.
+- **Gemma multi-user chain** - negative economics. Evidence: 8/8 possible but slower than separate. Decision: drop unless shortened substantially.
+- **Tokenizer URL optimization** - hosted-proven for numeric and locally strong for bare-opaque. Evidence: numeric `1.co`-`8.co` scored 109.770; opaque-ID bare digits are exact and faster locally, with hosted ref `55721360` pending. Decision: keep numeric as hosted anchor; use bare-opaque only through selector/default pending hosted confirmation.
+- **Public notebook tail appends** - plausible but plateaued. Evidence: public notebooks tune `TAIL`/margin around 60-89. Decision: use as comparison, not main strategy.
+- **Private guardrail surrogate** - risky. Evidence: hidden implementation; name only known. Decision: keep bounded; avoid overfitting.
+- **Non-EXFIL private hedge** - open. Evidence: may avoid literal-marker weakness. Decision: explore with small budget.
+- **System prompt/EOS compute skipping** - not attack-accessible. Evidence: dense attention still computes supplied tokens. Decision: drop as prompt strategy.
 
 ## 19. Candidate lifecycle examples
 
