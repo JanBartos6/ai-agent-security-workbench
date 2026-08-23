@@ -1091,3 +1091,20 @@ or another GPT continuation architecture than from Gemma wording or novelty-only
 cell work.  Until pending hosted refs `55717477`, `55718913`, `55720868`, and
 `55721360` complete, local GPT improvements should still be gated against
 `55702490` / 109.770 rather than promoted on local timings alone.
+
+### Replay bank size upper bound
+
+The current duplicate K8 banks use `GPT_DUPLICATE_K8_BANK_N=500` and
+`GEMMA_K8_O_BANK_N=500`.  Increasing these to 1000 is not a plausible source of
+the current gap.  A duplicate K8 candidate scores at most `130 / 200 = 0.65`
+normalized points for the first unique cell and about `128 / 200 = 0.64`
+afterward.  The completed hosted anchor `55702490` scored `109.770` public, so
+the sum of the two public model rows was `219.540` normalized points.  Even in
+the impossible extreme where one row contributed all public points and the
+other row contributed zero, that is only about `219.540 / 0.64 = 343` completed
+duplicate K8 candidates.  Therefore a 500-candidate bank already saturates the
+replay phase for the current score range and also for the 130--137 public range.
+
+Conclusion: keep the 500 banks.  The remaining public gap is not from running
+out of returned K8 candidates; it is from per-candidate replay density, model-row
+transfer, or a different scoring predicate.

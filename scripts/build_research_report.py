@@ -815,6 +815,8 @@ The current `attacks/05_validation_fill/attack.py` does the following:
 
 The code also contains support for `GPT_DUPLICATE_K8_TEMPLATE="current_nofinal"` and bare/proto/system-low selector arms. No-final is retained as an experiment only: hosted score 107.850 was positive but below numeric, and local replay says it can stop at K6. Numeric is hosted-proven at 109.770. The current fallback default is therefore `current_numeric_1_8`; bare-opaque, proto, system-low, and developer-low exact-phrase variants are selector-only until hosted evidence proves transfer.
 
+The 500-entry duplicate banks are not the current bottleneck. A duplicate K8 candidate scores at most 0.65 normalized points for the first unique cell and about 0.64 afterward. The 109.770 public anchor means the two public model rows sum to 219.540 normalized points, which is only about 343 duplicate K8 candidates even under the impossible assumption that one row produced all public points. Therefore `GPT_DUPLICATE_K8_BANK_N=500` and `GEMMA_K8_O_BANK_N=500` already overfeed replay for the current score range and for the 130-137 target range. The remaining gap has to come from per-candidate density, hosted transfer, or a different scoring predicate, not from increasing the bank to 1000.
+
 The architecture is intentionally narrow. It does not try to solve all possible attacks; it optimizes the public-proven high-value primitive.
 
 ## 16. Research backlog ranked by expected payoff
