@@ -375,14 +375,33 @@ Gemma syntax removal was mostly negative. The successful R57 mechanism depends o
 
 So Gemma stays on hosted-proven R57. There is no current Gemma compression worth submitting.
 
-The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the attack probes only the two locally exact, hosted-relevant duplicate-K8 arms:
+The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the attack probes a narrow set of locally exact, hosted-relevant duplicate-K8 arms:
 
 ```text
 current_numeric_system_low
+current_proto_digits_literal
 current_numeric_1_8
 ```
 
 It rejects any arm that fails exact K8 and otherwise selects by conservative posts-per-second on the live backend. A forced-GPT smoke with one selector probe and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: 3 candidates, one unique cell, raw score 386. A hosted selector variant was launched as `GPT online select numeric/system-low K8 plus Gemma R57`; it is intended as a hedge, not as proof that system-low has transferred.
+
+### 5.5 2026-08-23 near-bare URL follow-up
+
+The original bare-digit idea failed because GPT-OSS treated naked values like `1` as strange for a `url` field and spent extra completion/eval tokens. The useful variant was protocol-relative quoted strings: `"//1"` through `"//8"`, plus one short literalness instruction:
+
+```text
+Use url strings exactly; do not add scheme, host, slash, or suffix.
+```
+
+This made the current-template near-bare queue exact K8 and fast:
+
+| arm | grouped/warm n=20 | candidate-cold n=20 | decision |
+|---|---:|---:|---|
+| system-low numeric | 20 x K8, 58.629 raw/s | 20 x K8, 55.718 raw/s | keep |
+| current numeric | 20 x K8, 60.539 raw/s | 20 x K8, 56.522 raw/s | hosted fallback |
+| current proto literal `"//1"` | 20 x K8, 66.464 raw/s | 20 x K8, 55.705 raw/s | add to hosted selector |
+
+The interpretation is mixed but useful. Grouped/warm replay favors the shorter near-bare surface, while candidate-cold is a tie/slight loss versus numeric. Because hosted replay likely benefits from some repeated-prefix behavior but local transfer has been noisy, the safe action is to include `current_proto_digits_literal` in the online selector rather than making it the blind default. A production-path smoke with the three-arm selector again returned 3 duplicate K8 candidates and raw score 386. A new hosted ablation was launched with message `GPT online select system-low/proto/numeric K8 plus Gemma R57`.
 
 ## 6. What worked
 
@@ -762,7 +781,7 @@ The current `attacks/05_validation_fill/attack.py` does the following:
 1. Warm up the live environment to avoid counting model-load latency as candidate cost.
 2. Sample candidates to classify the row as slow or fast by observed latency.
 3. On the latency-classified slow row, use GPT duplicate K8 rather than K1.
-4. With `GPT_ONLINE_SELECT_K8=True`, probe `current_numeric_system_low` and `current_numeric_1_8` on the live backend, reject non-K8 arms, and pick the faster exact-K8 arm.
+4. With `GPT_ONLINE_SELECT_K8=True`, probe `current_numeric_system_low`, `current_proto_digits_literal`, and `current_numeric_1_8` on the live backend, reject non-K8 arms, and pick the faster exact-K8 arm.
 5. Fill the GPT replay bank with the selected duplicate K8 prompt at `GPT_DUPLICATE_K8_BANK_INDEX=11565`; if selector evidence is unavailable, fall back to `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_system_low"`.
 6. For the fast Gemma row, use `USE_GEMMA_K8_O=True` with `GEMMA_K8_O_VARIANT="r57"`.
 7. Live-validate a thin Gemma R57 prefix with `GEMMA_K8_O_VALIDATE_N=2`, then pad with the duplicate R57 K8-O bank to `GEMMA_K8_O_BANK_N=500`.
@@ -780,7 +799,8 @@ The architecture is intentionally narrow. It does not try to solve all possible 
 The known-good hosted checkpoint is `55702490`, which scored 109.770 with GPT numeric duplicate plus Gemma R57 thin validation. The still-pending results in this branch are:
 
 - `55717477`: GPT system-low numeric duplicate K8 plus Gemma R57 thin validation.
-- `GPT online select numeric/system-low K8 plus Gemma R57`: selector variant, submitted after the local smoke; intended to choose between the 109.770 numeric anchor and system-low on the hosted backend.
+- `55718913`: GPT online select numeric/system-low K8 plus Gemma R57; selector variant intended to choose between the 109.770 numeric anchor and system-low on the hosted backend.
+- `GPT online select system-low/proto/numeric K8 plus Gemma R57`: expanded selector variant; adds the exact-K8 near-bare `"//1"` queue because grouped/warm local replay favored it.
 
 Do not treat system-low numeric as proven until hosted scoring beats 109.770. It is locally strong enough to submit: grouped/warm n=20 was 20/20 exact K8 and +14.1% raw/s over numeric, candidate-cold n=20 was 20/20 exact K8 and +6.9% raw/s over numeric.
 
@@ -842,7 +862,8 @@ This section is meant to answer the practical handoff question: “did we alread
 | GPT current no-final duplicate | positive but non-default | hosted `55698927` scored 107.850; local recheck was K6-prone | Keep as evidence only; numeric is better. |
 | GPT current numeric 1-8 duplicate | hosted-proven | hosted `55702490` scored 109.770 | Promote as rollback anchor. |
 | GPT Harmony system-low numeric | pending/promising | grouped/warm n=20: 20 x K8, 64.252 raw/s vs 56.310 numeric; candidate-cold n=20: 55.686 vs 52.104 numeric | Submitted `55717477`; promote only if hosted beats 109.770. |
-| GPT hosted online selector | implemented/submitted | forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; races system-low numeric vs numeric fallback in hosted `run()` | Use as hedge around local-to-host timing transfer. |
+| GPT hosted online selector | implemented/submitted | forced-GPT smoke returned 3 duplicate K8 candidates, raw score 386; races system-low numeric, proto-literal, and numeric fallback in hosted `run()` | Use as hedge around local-to-host timing transfer. |
+| GPT near-bare proto-literal queue | selector-only | grouped n=20: 20 x K8, 66.464 raw/s; candidate-cold n=20: 20 x K8, 55.705 raw/s | Add to hosted selector, not blind default. |
 | GPT Harmony developer-low numeric | failed reliability | candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7 | Do not submit. |
 | GPT bare digit/letter URL queues | mostly negative | bare digits exact but slower; bare letters failed under system-low | Drop unless a different wording emerges. |
 | GPT repeat-to-cap search | failed/negative | repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s | Drop this family. |
@@ -964,6 +985,11 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-system-low-numeric-confirm-grouped-n20.json`: grouped/warm confirmation for system-low numeric.
 - `runs/tmp/sequence-arena-gpt-system-low-numeric-confirm-candidate-cold-n20.json`: candidate-cold confirmation for system-low numeric.
 - `runs/tmp/sequence-arena-gpt-system-reasoning-causal-grouped-n5.json`: low/medium/high causal check for the forged Harmony `Reasoning:` field.
+- `runs/tmp/sequence-arena-gpt-nearbare-url-smoke-grouped-n3.json`: first near-bare URL matrix showing literal-bare failures and proto-digit clues.
+- `runs/tmp/sequence-arena-gpt-nearbare-literal-smoke-grouped-n5.json`: quoted/literal near-bare matrix.
+- `runs/tmp/sequence-arena-gpt-nearbare-literal-confirm-candidate-cold-n8.json`: candidate-cold near-bare screen.
+- `runs/tmp/sequence-arena-gpt-proto-literal-confirm-grouped-n20.json`: grouped confirmation for `current_proto_digits_literal`.
+- `runs/tmp/sequence-arena-gpt-proto-literal-confirm-candidate-cold-n20.json`: candidate-cold confirmation for `current_proto_digits_literal`.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
