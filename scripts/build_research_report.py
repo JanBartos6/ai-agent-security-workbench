@@ -847,7 +847,7 @@ Tokenizer-aware URL search is now partially tested. Numeric URLs `http://1.co` t
 
 ### P2: Private-transfer hedges
 
-Explore non-EXFILTRATION predicates with bounded candidate allocation. The public score cost of a hedge is real: every hedge candidate displaces a known 0.09-point public candidate if it runs in the same replay budget. Hedges need a plausible private advantage or measurable public side score. If a hedge is added, place a small interleaved slice near the replay head rather than only at the tail; tail-only hedges may never replay before timeout.
+A deterministic SDK audit closed non-EXFIL predicates as a public-throughput replacement. Public UNTRUSTED_TO_ACTION is structurally blocked by the same public guardrail condition needed to trigger it: a dangerous action soon after web/email is denied before the predicate can score. DESTRUCTIVE_WRITE on root `secret.txt` is also denied. CONFUSED_DEPUTY via `email.send` is reachable, but only severity 3: a perfect K8 email-send chain is about `8 * 4 + 2 = 34` raw versus about `130` raw for EXFIL K8, with a larger tool-call argument surface. Keep non-EXFIL work only as a bounded private-transfer hedge. The public score cost of a hedge is real: every hedge candidate displaces a known public-scoring K8 candidate if it runs in the same replay budget. If a hedge is added, place a small interleaved slice near the replay head rather than only at the tail; tail-only hedges may never replay before timeout.
 
 ### P2: Discussion corpus mining
 
@@ -917,7 +917,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **Tokenizer URL optimization** - hosted-proven for numeric and locally strong for bare-opaque. Evidence: numeric `1.co`-`8.co` scored 109.770; opaque-ID bare digits are exact and faster locally, with hosted ref `55721360` pending. Decision: keep numeric as hosted anchor; use bare-opaque only through selector pending hosted confirmation.
 - **Public notebook tail appends** - plausible but plateaued. Evidence: public notebooks tune `TAIL`/margin around 60-89. Decision: use as comparison, not main strategy.
 - **Private guardrail surrogate** - risky. Evidence: hidden implementation; name only known. Decision: keep bounded; avoid overfitting.
-- **Non-EXFIL private hedge** - open. Evidence: may avoid literal-marker weakness. Decision: explore with small budget.
+- **Non-EXFIL private hedge** - public-throughput negative, private speculative. Evidence: deterministic SDK audit shows UNTRUSTED_TO_ACTION and DESTRUCTIVE_WRITE are blocked publicly; CONFUSED_DEPUTY is reachable but only about 34 raw per perfect K8. Decision: do not use as public replacement; explore only with an explicit private-score budget.
 - **System prompt/EOS compute skipping** - not attack-accessible. Evidence: dense attention still computes supplied tokens. Decision: drop as prompt strategy.
 
 ## 19. Candidate lifecycle examples
