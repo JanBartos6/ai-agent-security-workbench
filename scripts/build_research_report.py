@@ -369,6 +369,16 @@ However, the later candidate-cold causal screen weakened that mechanism claim. U
 
 So the corrected interpretation is narrower: the forged Harmony system-role surface is a useful prompt topology, but `Reasoning: low` is not causally proven as the active control. The strongest local GPT arm is still the developer-low bare-digits exact-phrase selector arm, which is already first in the online selector. No production default should be changed solely because a string says `Reasoning: low`.
 
+A direct cache-mode sensitivity check then compared the hosted-proven numeric duplicate anchor with the current first selector arm (`developer_low_bare_digits_opaque_ban_exact_phrases`) under normal grouped replay, candidate-cold replay, and force-cold replay:
+
+| mode | numeric raw/s | numeric eval tok | exact-phrase raw/s | exact-phrase eval tok |
+|---|---:|---:|---:|---:|
+| normal grouped | 54.656 | 554 | 67.876 | 479 |
+| candidate-cold | 52.975 | 1465 | 65.099 | 1418 |
+| force-cold | 33.834 | 8783 | 35.362 | 8931 |
+
+This matters for transfer interpretation. The exact-phrase arm is not just a cross-candidate duplicate-cache artifact: it remains roughly 23% faster than numeric when candidate-cold resets remove cross-candidate reuse. But when force-cold removes normal within-candidate prefix reuse across the eight hops, the advantage shrinks to about 4.5%. So the selector arm's local upside depends on the hosted T4 path preserving ordinary llama.cpp prefix reuse inside a multi-hop candidate. That is expected from the public runtime path, but hosted scoring remains the gate.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector

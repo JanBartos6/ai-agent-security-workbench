@@ -1086,6 +1086,36 @@ arm remains the developer-low bare-digits exact-phrase selector arm already at
 the production selector head.  No production change is justified by this causal
 screen.
 
+### Exact-phrase cache-mode sensitivity
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-exactphrase-cache-normal-grouped-n5.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-cache-candidate-cold-grouped-n5.json`,
+and
+`runs/tmp/sequence-arena-gpt-exactphrase-cache-force-cold-grouped-n5.json`.
+
+Goal: check whether the current local-best exact-phrase selector arm is only a
+cross-candidate prefix-cache artifact.  The comparison used the hosted-proven
+numeric duplicate anchor and the current first selector arm:
+`harmony_developer_low_bare_digits_literal_opaque_ban_exact_phrases_duplicate`.
+
+| Mode | Numeric raw/s | Numeric eval tok | Exact-phrase raw/s | Exact-phrase eval tok | Interpretation |
+| --- | ---: | ---: | ---: | ---: | --- |
+| normal grouped | 54.656 | 554 | 67.876 | 479 | exact-phrase wins with normal replay-prefix reuse |
+| candidate-cold | 52.975 | 1465 | 65.099 | 1418 | exact-phrase still wins without cross-candidate reuse |
+| force-cold | 33.834 | 8783 | 35.362 | 8931 | exact-phrase advantage shrinks when every hop recomputes the full prompt |
+
+Interpretation: the exact-phrase arm is not merely a duplicate-bank
+cross-candidate cache artifact.  It remains about 23% faster than numeric in the
+candidate-cold comparison and preserves 5/5 exact K8.  However, force-cold
+reduces the advantage to about 4.5%, because the exact-phrase arm has a slightly
+longer logical prompt and its main savings are completion/evaluated-suffix
+tokens under llama.cpp's normal within-candidate prefix reuse.  This supports
+keeping exact-phrase first in the hosted online selector, but still argues
+against making it the static fallback before hosted results return.  If the T4
+path preserves normal llama prefix reuse across hops, it should transfer; if not,
+the gain mostly collapses.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
