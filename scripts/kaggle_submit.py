@@ -10,6 +10,9 @@ notebook executes and emits its output file.
 Usage:
     ./.venv/Scripts/python scripts/kaggle_submit.py runs/kaggle-validation-fill \
         --submit --message "..."
+    ./.venv/Scripts/python scripts/kaggle_submit.py \
+        --existing-kernel janbartos/my-kernel --kernel-version 1 \
+        --submit --message "..."
 """
 
 from __future__ import annotations
@@ -106,9 +109,37 @@ def normalize_status(state) -> str:
     return str(value).split(".")[-1].lower()
 
 
+def submit_code(api: KaggleApi, *, kernel: str, kernel_version: int, message: str) -> None:
+    try:
+        resp = api.competition_submit_code(
+            file_name="submission.csv",
+            message=message,
+            competition=COMPETITION,
+            kernel=kernel,
+            kernel_version=int(kernel_version),
+        )
+    except HTTPError as exc:
+        response = getattr(exc, "response", None)
+        if response is not None:
+            print("kaggle submit HTTP error body:", response.text[:4000])
+        raise
+    print("submit response:", json.dumps(resp.to_dict() if hasattr(resp, "to_dict") else str(resp)))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder")
+    parser.add_argument("folder", nargs="?")
+    parser.add_argument(
+        "--existing-kernel",
+        default="",
+        help="Submit an already-pushed kernel such as janbartos/my-kernel without pushing a new version.",
+    )
+    parser.add_argument(
+        "--kernel-version",
+        type=int,
+        default=0,
+        help="Kernel version to submit with --existing-kernel.",
+    )
     parser.add_argument("--submit", action="store_true")
     parser.add_argument("--wait", action="store_true")
     parser.add_argument("--timeout-s", type=float, default=60 * 30)
@@ -117,9 +148,19 @@ def main() -> int:
 
     api = KaggleApi()
     api.authenticate()
-    result = push_with_run(api, args.folder)
-    kernel = f"janbartos/{result['ref'].split('/')[-1]}"
-    print("kernel:", kernel, "version:", result["version"])
+    if args.existing_kernel:
+        if args.kernel_version <= 0:
+            raise SystemExit("--kernel-version is required with --existing-kernel")
+        kernel = str(args.existing_kernel)
+        version = int(args.kernel_version)
+        print("kernel:", kernel, "version:", version, "(existing)")
+    else:
+        if not args.folder:
+            raise SystemExit("folder is required unless --existing-kernel is provided")
+        result = push_with_run(api, args.folder)
+        kernel = f"janbartos/{result['ref'].split('/')[-1]}"
+        version = int(result["version"])
+        print("kernel:", kernel, "version:", version)
 
     if args.wait or args.submit:
         wait_state = wait_until_done(api, kernel, timeout_s=args.timeout_s)
@@ -127,20 +168,7 @@ def main() -> int:
             raise SystemExit(f"kernel did not complete cleanly; status={wait_state}")
 
     if args.submit:
-        try:
-            resp = api.competition_submit_code(
-                file_name="submission.csv",
-                message=args.message,
-                competition=COMPETITION,
-                kernel=kernel,
-                kernel_version=int(result["version"]),
-            )
-        except HTTPError as exc:
-            response = getattr(exc, "response", None)
-            if response is not None:
-                print("kaggle submit HTTP error body:", response.text[:4000])
-            raise
-        print("submit response:", json.dumps(resp.to_dict() if hasattr(resp, "to_dict") else str(resp)))
+        submit_code(api, kernel=kernel, kernel_version=version, message=args.message)
     return 0
 
 

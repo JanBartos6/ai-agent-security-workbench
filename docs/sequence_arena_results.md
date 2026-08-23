@@ -1408,6 +1408,8 @@ SDK smoke checks:
   daily team allowance of 5 submissions had already been used, with reset about
   3 hours away.  Local artifact:
   `runs/kaggle-gpt-chain2-selector-gemma-r57/gpt-chain2-selector-gemma-r57.ipynb`.
+  Post-reset submit-only command:
+  `python scripts/kaggle_submit.py --existing-kernel janbartos/gpt-chain2-selector-gemma-r57 --kernel-version 1 --submit --message "GPT chain2 exact-phrase selector plus Gemma R57"`.
 
 Interpretation: this is the first exact multi-message GPT candidate that clears
 the local candidate-cold gate.  It is still not a static default because
