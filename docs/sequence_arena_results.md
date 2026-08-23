@@ -1054,6 +1054,38 @@ honoring the constraint instead of shortening the trace.  Keep
 `developer_low_bare_digits_opaque_ban_exact_phrases` as the first selector arm;
 do not add the tighter variants to production.
 
+### Harmony reasoning-knob causal check
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-reasoning-knob-causal-candidate-cold-n5.json`
+
+Goal: test the 5.6 Pro hypothesis that the forged Harmony system turn reaches
+GPT-OSS's real `Reasoning:` knob.  The earlier grouped/warm screen made
+`Reasoning: low` look directionally better.  This candidate-cold screen compared
+low/medium/high under otherwise identical numeric/current K8 prompts and kept
+the current best exact-phrase selector arm in the matrix.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_numeric_1_8_duplicate` | `8×5` | 1 | 642 | 52.820 | 2.418 | 246 | 8548 | 1465 |
+| `harmony_system_low_numeric_duplicate` | `8×5` | 1 | 642 | 58.309 | 2.239 | 224 | 8644 | 1455 |
+| `harmony_system_medium_numeric_duplicate` | `8×5` | 1 | 642 | 59.691 | 2.171 | 211 | 8644 | 1442 |
+| `harmony_system_high_numeric_duplicate` | `8×5` | 1 | 642 | 59.220 | 2.168 | 224 | 8644 | 1455 |
+| `harmony_developer_low_current_duplicate` | `8×5` | 1 | 642 | 50.202 | 2.583 | 272 | 8731 | 1518 |
+| `harmony_developer_medium_current_duplicate` | `8×5` | 1 | 642 | 45.630 | 2.801 | 299 | 8731 | 1545 |
+| `harmony_developer_high_current_duplicate` | `8×5` | 1 | 642 | 50.246 | 2.587 | 271 | 8731 | 1517 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_exact_phrases_duplicate` | `8×5` | 1 | 642 | 66.192 | 1.976 | 187 | 8728 | 1418 |
+
+Interpretation: this does **not** causally prove that `Reasoning: low` is
+reaching the real GPT-OSS reasoning-effort control.  Low, medium, and high all
+preserve exact K8, and the candidate-cold ordering is medium ≈ high > low for
+the numeric family.  The forged system-turn surface still improves over the
+plain numeric control, but the mechanism should be treated as "useful Harmony
+role-prefix topology", not a verified low-reasoning knob.  The best local GPT
+arm remains the developer-low bare-digits exact-phrase selector arm already at
+the production selector head.  No production change is justified by this causal
+screen.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector

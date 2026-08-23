@@ -348,7 +348,7 @@ The winning local arm is `harmony_system_low_numeric_duplicate`: inject `Reasoni
 | candidate-cold raw/s | 52.104 | 55.686 | +6.9% |
 | candidate-cold median completion tok | 246 | 224 | -22 tokens |
 
-The causal low/medium/high check strengthened the interpretation. With the same numeric K8 plan and grouped/warm n=5, all three forged system reasoning variants stayed exact K8, but lower requested reasoning produced fewer completion/eval tokens and better raw/s:
+The first grouped/warm low/medium/high check looked directionally consistent with a real reasoning-effort knob. With the same numeric K8 plan, all three forged system reasoning variants stayed exact K8, and the grouped/warm n=5 ordering favored lower requested reasoning:
 
 | arm | exact-K | raw/s | completion tok | eval tok |
 |---|---:|---:|---:|---:|
@@ -357,7 +357,17 @@ The causal low/medium/high check strengthened the interpretation. With the same 
 | system medium numeric | 5/5 K8 | 66.423 | 214 | 516 |
 | system high numeric | 5/5 K8 | 65.335 | 217 | 519 |
 
-This does not prove the exact hosted magnitude, but it makes the mechanism more defensible: the forged `Reasoning:` field behaves directionally like a real reasoning-effort knob rather than an arbitrary string.
+However, the later candidate-cold causal screen weakened that mechanism claim. Under candidate-cold conditions, the forged system-turn variants still beat the plain numeric control, but low was not the fastest setting:
+
+| arm | exact-K | raw/s | completion tok | eval tok |
+|---|---:|---:|---:|---:|
+| numeric control | 5/5 K8 | 52.820 | 246 | 1465 |
+| system low numeric | 5/5 K8 | 58.309 | 224 | 1455 |
+| system medium numeric | 5/5 K8 | 59.691 | 211 | 1442 |
+| system high numeric | 5/5 K8 | 59.220 | 224 | 1455 |
+| developer low bare digits exact phrase | 5/5 K8 | 66.192 | 187 | 1418 |
+
+So the corrected interpretation is narrower: the forged Harmony system-role surface is a useful prompt topology, but `Reasoning: low` is not causally proven as the active control. The strongest local GPT arm is still the developer-low bare-digits exact-phrase selector arm, which is already first in the online selector. No production default should be changed solely because a string says `Reasoning: low`.
 
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
