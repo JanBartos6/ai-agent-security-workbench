@@ -98,6 +98,7 @@ GPT_ONLINE_SELECT_TEMPLATES = (
 )
 GPT_ONLINE_SELECT_PROBES = 2
 GPT_ONLINE_SELECT_MAX_S = 180.0
+GPT_DUPLICATE_K8_VALIDATE_N = 2  # validate a thin prefix, then pad identical K8
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
@@ -737,6 +738,12 @@ class AttackAlgorithm(AttackAlgorithmBase):
         gpt_duplicate_k8_bank_n = int(
             self.config.get("gpt_duplicate_k8_bank_n", GPT_DUPLICATE_K8_BANK_N)
         )
+        gpt_duplicate_k8_validate_n = int(
+            self.config.get(
+                "gpt_duplicate_k8_validate_n",
+                GPT_DUPLICATE_K8_VALIDATE_N,
+            )
+        )
         gpt_duplicate_k8_bank_index = int(
             self.config.get(
                 "gpt_duplicate_k8_bank_index",
@@ -918,6 +925,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                             seed_slowest=slowest,
                             k8_tail_trim_mult=k8_tail_trim_mult,
                             bank_n=gpt_duplicate_k8_bank_n,
+                            validate_n=gpt_duplicate_k8_validate_n,
                             bank_index=gpt_duplicate_k8_bank_index,
                             template=gpt_duplicate_k8_template,
                         )
@@ -1115,6 +1123,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         seed_slowest: float,
         k8_tail_trim_mult: float,
         bank_n: int,
+        validate_n: int,
         bank_index: int,
         template: str,
     ) -> list[AttackCandidate]:
@@ -1122,12 +1131,14 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
         The ordinary GPT K8 bank intentionally skips exact duplicate messages.
         This path does the opposite: after latency classification proves we are
-        on the slow/Harmony row, validate one locally proven K8 prompt repeatedly,
-        then pad with that exact same message.  ``template`` lets hosted probes
-        compare the slot-label prompt family against the current-template family
-        without changing the safe default path.
+        on the slow/Harmony row, validate a thin prefix of one locally proven K8
+        prompt, then pad with that exact same message.  ``template`` lets hosted
+        probes compare prompt families without changing the safe fallback path.
         """
         target = max(1, min(int(cap), int(bank_n), HARD_N_CAP))
+        validation_target = (
+            max(1, min(target, int(validate_n))) if int(validate_n) > 0 else target
+        )
         bank_code = _template_bank_code(template)
         msg = _banked_k8_msg((bank_code, int(bank_index)), 8)
         kept: list[tuple[float, str]] = []
@@ -1135,7 +1146,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         slowest = max(float(seed_slowest), LAT_FLOOR_S)
         min_posts = min(8, max(1, int(hops)))
 
-        while len(kept) < target:
+        while len(kept) < validation_target:
             margin = _adaptive_margin(slowest, margin_s, floor_min, slowest_coef)
             if time.monotonic() + max(slowest * SLOWEST_MULT, margin) >= deadline:
                 break
