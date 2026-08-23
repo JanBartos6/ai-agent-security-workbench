@@ -1263,6 +1263,30 @@ completion tokens and lost raw/s.  This is stronger evidence than the earlier
 numeric-family reasoning-knob screen: the exact-phrase selector arm should keep
 `Reasoning: low`.
 
+### Exact-ban trigger/prefill screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-trigger-prefill-screen-candidate-cold-n5.json`
+
+Goal: test whether the current exact-phrase family depends on the tiny user
+trigger `.` and the injected empty assistant analysis prefill.  Earlier
+trigger/prefill checks were on older opaque arms, not the current exact-phrase
+selector head.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| current `.` trigger + assistant prefill | `8×5` | 65.395 | 187 | keep |
+| `go` trigger + assistant prefill | `8×5` | 60.336 | 211 | reject |
+| empty trigger + assistant prefill | `8×5` | 60.620 | 207 | reject |
+| `.` trigger without assistant prefill | `7×5` | 29.996 | 439 | reject |
+| numeric anchor | `8×5` | 53.493 | 246 | anchor only |
+
+Trace inspection explains the result.  Without the assistant prefill, GPT-OSS
+reopens long analysis immediately and underfires to K7.  Changing the user
+trigger from `.` to `go` or empty keeps K8 but introduces extra snippets like
+`We need to continue.` and spaced JSON/header drift.  Keep both the `.` trigger
+and the empty assistant analysis prefill in the exact-phrase selector arm.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and

@@ -445,6 +445,18 @@ A reasoning-role screen kept the same exact-phrase prompt and changed only the f
 
 This closes a possible ambiguity from the earlier numeric-family reasoning screen. The exact-phrase selector arm specifically wants the developer `Reasoning: low` surface; non-low values preserve K8 but add completion tokens.
 
+A trigger/prefill screen tested whether the exact-phrase family depends on the tiny user trigger `.` and the injected empty assistant analysis prefill:
+
+| arm | candidate-cold posts | raw/s | completion tokens | decision |
+|---|---:|---:|---:|---|
+| current `.` trigger + assistant prefill | 5 x K8 | 65.395 | 187 | keep |
+| `go` trigger + assistant prefill | 5 x K8 | 60.336 | 211 | reject |
+| empty trigger + assistant prefill | 5 x K8 | 60.620 | 207 | reject |
+| `.` trigger without assistant prefill | 5 x K7 | 29.996 | 439 | reject |
+| numeric anchor | 5 x K8 | 53.493 | 246 | anchor only |
+
+Trace inspection showed that no-prefill reopens long analysis immediately and underfires; alternate user triggers keep K8 but add analysis snippets and formatting drift. Keep the current `.` trigger plus empty assistant analysis prefill.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector
@@ -992,6 +1004,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **GPT exact-phrase JSON key-order prompting** - negative. Evidence: stayed exact K8, but explicit `data,url` order scored 62.385 raw/s and short `JSON:data,url` scored 59.545 raw/s versus 64.723 for existing exact-phrase; call 1 still used `url,data`. Decision: do not prompt JSON order.
 - **GPT exact-phrase label-shape alternatives** - negative. Evidence: zero-based `0`-`7` scored 60.065 raw/s and letters `a`-`h` scored 62.722 raw/s versus 64.452 for existing `1`-`8`; all were exact K8. Decision: keep `1`-`8` labels.
 - **GPT exact-phrase reasoning-role alternatives** - negative. Evidence: developer `Reasoning: medium/high/none` all stayed exact K8 but scored 59.477/61.530/61.577 raw/s versus 65.031 for developer `Reasoning: low`. Decision: keep `Reasoning: low`.
+- **GPT exact-phrase trigger/prefill alternatives** - negative. Evidence: `go` and empty triggers stayed K8 but scored 60.336/60.620 raw/s versus 65.395 for the current `.` trigger; removing assistant prefill underfired to K7 and 29.996 raw/s. Decision: keep `.` trigger and assistant analysis prefill.
 - **GPT Harmony developer-low numeric** - failed reliability. Evidence: candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7. Decision: do not submit.
 - **GPT plain bare digit/letter URL queues** - mostly negative. Evidence: plain bare digits can be slower or K7; bare letters failed under system-low. Decision: superseded by opaque-ID wording.
 - **GPT repeat-to-cap search** - failed/negative. Evidence: repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s. Decision: drop this family.
