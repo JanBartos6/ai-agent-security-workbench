@@ -1401,6 +1401,13 @@ SDK smoke checks:
 - Online selector with production-like three probes and one warmup selected the
   chain2 arm: `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
   `score_normalized=3.85`, `attack_elapsed_s=44.258`.
+- Selector-probe reduction screen: two probes with one warmup selected chain2 in
+  two consecutive forced-GPT smokes (`score_raw=770.0`, `attack_elapsed_s=37.075`
+  and `37.009`), but two probes with no warmup selected a one-message arm
+  (`score_raw=386.0`, `attack_elapsed_s=29.888`).  Do not change the default
+  from three probes: the saved time is attack-phase selector overhead, not the
+  replay throughput bottleneck, while the extra probe gives safer hosted timing
+  evidence.
 - Kaggle notebook prepared and Save & Run completed as
   `janbartos/gpt-chain2-selector-gemma-r57` version 1
   ([kernel](https://www.kaggle.com/code/janbartos/gpt-chain2-selector-gemma-r57)).
