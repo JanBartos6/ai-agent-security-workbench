@@ -966,6 +966,30 @@ decode-sensitive, this arm is worth adding to the online selector ahead of the
 full opaque developer-low arm.  It is not promoted as the static fallback until
 hosted evidence proves transfer.
 
+### Targeted ban cross-family check
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-targeted-ban-crossfamily-screen-candidate-cold-n10.json`
+
+Goal: test whether the positive `No Now/Continue` result generalizes beyond the
+developer-low bare-opaque topology.  This matters because the hosted-proven
+numeric family is the 109.770 anchor; if the same targeted ban improved numeric,
+it would be a safer hosted-transfer candidate than a developer-only arm.
+
+| Family | Base posts | Base raw/s | Base completion tok | Targeted posts | Targeted raw/s | Targeted completion tok | Decision |
+| --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+| current numeric `1.co..8.co` | `8×10` | 53.613 | 246.0 | `8×10` | 50.316 | 263.0 | reject |
+| current bare opaque `"1".. "8"` | `8×10` | 60.175 | 210.0 | `8×10` | 58.789 | 217.0 | reject |
+| system-low numeric | `8×10` | 57.169 | 224.0 | `8×10` | 53.010 | 248.0 | reject |
+| system-low bare opaque | `8×10` | 60.442 | 207.0 | `8×10` | 57.392 | 223.0 | reject |
+| developer-low bare opaque | `8×10` | 61.718 | 200.0 | `8×10` | 62.600 | 197.0 | keep selector-only |
+
+Interpretation: the targeted phrase is not a general no-analysis improvement.
+It is topology-specific.  On numeric/current/system-low families it makes the
+model spend more completion tokens while still preserving K8, so do not add
+numeric-ban, current-bare-ban, or system-low-ban variants to production.  Keep
+only `developer_low_bare_digits_opaque_ban_now_continue` as the selector hedge.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
