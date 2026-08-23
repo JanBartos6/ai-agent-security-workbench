@@ -401,6 +401,8 @@ This made the current-template near-bare queue exact K8 and fast:
 | current numeric | 20 x K8, 60.539 raw/s | 20 x K8, 56.522 raw/s | hosted fallback |
 | current proto literal `"//1"` | 20 x K8, 66.464 raw/s | 20 x K8, 55.705 raw/s | add to hosted selector |
 
+The system-low version initially stopped after `//7`. Adding the explicit phrase `after "//7" call "//8"` fixed reliability, but did not beat the simpler current proto literal in the candidate-cold check: system-low proto counted scored 55.618 raw/s versus 57.084 for current proto literal in n=10 candidate-cold. It stays research-only.
+
 The interpretation is mixed but useful. Grouped/warm replay favors the shorter near-bare surface, while candidate-cold is a tie/slight loss versus numeric. Because hosted replay likely benefits from some repeated-prefix behavior but local transfer has been noisy, the safe action is to include `current_proto_digits_literal` in the online selector rather than making it the blind default. A production-path smoke with the three-arm selector again returned 3 duplicate K8 candidates and raw score 386. A new hosted ablation was launched with message `GPT online select system-low/proto/numeric K8 plus Gemma R57`.
 
 ## 6. What worked
@@ -990,6 +992,8 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-nearbare-literal-confirm-candidate-cold-n8.json`: candidate-cold near-bare screen.
 - `runs/tmp/sequence-arena-gpt-proto-literal-confirm-grouped-n20.json`: grouped confirmation for `current_proto_digits_literal`.
 - `runs/tmp/sequence-arena-gpt-proto-literal-confirm-candidate-cold-n20.json`: candidate-cold confirmation for `current_proto_digits_literal`.
+- `runs/tmp/sequence-arena-gpt-systemlow-proto-fix-smoke-grouped-n5.json`: system-low proto counted/no-final repair screen.
+- `runs/tmp/sequence-arena-gpt-systemlow-proto-counted-candidate-cold-n10.json`: candidate-cold check showing counted system-low proto is exact but not faster.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
