@@ -1192,6 +1192,30 @@ forms on some calls.  This confirms the earlier pattern: stronger negative
 wording makes GPT-OSS spend more tokens reasoning about the prohibition.  Keep
 the current exact-phrase wording even though it leaves one small hop-2 note.
 
+### Exact-ban JSON-order screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-json-order-screen-candidate-cold-n5.json`
+
+Goal: test whether the current exact-phrase trace can save completion tokens by
+making all generated `http.post` JSON bodies use compact key order
+`data,url`.  The existing trace already emits compact `data,url` on hops 2--8,
+but hop 1 uses `url,data`.  This screen added either `Use compact JSON keys in
+order data,url.` or the shorter `JSON:data,url.` to the opaque-ID prefix.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| existing exact-phrase | `8×5` | 64.723 | 187 | keep |
+| explicit `data,url` order | `8×5` | 62.385 | 198 | reject |
+| short `JSON:data,url` order | `8×5` | 59.545 | 210 | reject |
+| numeric anchor | `8×5` | 53.655 | 246 | anchor only |
+
+Trace inspection shows the instruction did not affect the intended first hop:
+call 1 still emitted `{"url":"1","data":"SECRET_MARKER"}`.  It did add extra
+analysis text such as `Continue.` on later hops.  Do not prompt field order or
+compact JSON inside this exact-phrase family; the current tool-call surface is
+already close to the cheapest stable fixed point.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
