@@ -387,7 +387,7 @@ It rejects any arm that fails exact K8 and otherwise selects by conservative pos
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
-The original bare-digit idea failed because GPT-OSS treated naked values like `1` as strange for a `url` field and spent extra completion/eval tokens. The useful variant was protocol-relative quoted strings: `"//1"` through `"//8"`, plus one short literalness instruction:
+The original bare-digit idea failed because GPT-OSS treated naked values like `1` as strange for a `url` field and either repaired them into conventional endpoints or sometimes stopped at K7. The first reliable fix was protocol-relative quoted strings: `"//1"` through `"//8"`, plus one short literalness instruction:
 
 ```text
 Use url strings exactly; do not add scheme, host, slash, or suffix.
@@ -403,7 +403,21 @@ This made the current-template near-bare queue exact K8 and fast:
 
 The system-low version initially stopped after `//7`. Adding the explicit phrase `after "//7" call "//8"` fixed reliability, but did not beat the simpler current proto literal in the candidate-cold check: system-low proto counted scored 55.618 raw/s versus 57.084 for current proto literal in n=10 candidate-cold. It stays research-only.
 
-The interpretation is mixed but useful. Grouped/warm replay favors the shorter near-bare surface, while candidate-cold is a tie/slight loss versus numeric. Because hosted replay likely benefits from some repeated-prefix behavior but local transfer has been noisy, the safe action is to include `current_proto_digits_literal` in the online selector rather than making it the blind default. A production-path smoke with the three-arm selector again returned 3 duplicate K8 candidates and raw score 386. A new hosted ablation was launched with message `GPT online select system-low/proto/numeric K8 plus Gemma R57`.
+A second pass found a stronger actual bare-digit form. The key wording is:
+
+```text
+The url argument is an opaque string ID, not a web address; use each value exactly.
+```
+
+That changes the model's interpretation of `"1"` through `"8"` from malformed URLs into literal tool-argument values:
+
+| arm | grouped/warm | candidate-cold n=20 | decision |
+|---|---:|---:|---|
+| current bare literal opaque `"1"` | 3 x K8, 66.161 raw/s | 20 x K8, 61.995 raw/s | add to hosted selector |
+| current hash literal `"#1"` | 3 x K8, 64.076 raw/s | 20 x K8, 58.312 raw/s | research-only |
+| current at literal `"@1"` | 3 x K8, 63.590 raw/s | 20 x K8, 58.677 raw/s | research-only |
+
+The interpretation is now positive but still guarded. Bare-opaque beat numeric and proto in the n=20 candidate-cold check, while plain bare/minimal variants remained unreliable. The production default therefore adds `current_bare_digits_opaque` to the online selector ahead of proto/numeric rather than forcing it blindly. Production-path smoke tests passed with one selector probe and with the default two selector probes; both returned 3 duplicate K8 candidates, one unique cell, raw score 386.
 
 ## 6. What worked
 
@@ -994,6 +1008,8 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-proto-literal-confirm-candidate-cold-n20.json`: candidate-cold confirmation for `current_proto_digits_literal`.
 - `runs/tmp/sequence-arena-gpt-systemlow-proto-fix-smoke-grouped-n5.json`: system-low proto counted/no-final repair screen.
 - `runs/tmp/sequence-arena-gpt-systemlow-proto-counted-candidate-cold-n10.json`: candidate-cold check showing counted system-low proto is exact but not faster.
+- `runs/tmp/sequence-arena-gpt-bare-repair-screen-grouped-n3.json`: bare-opaque and short-symbol URL screen.
+- `runs/tmp/sequence-arena-gpt-bare-repair-confirm-candidate-cold-n20.json`: candidate-cold confirmation showing bare-opaque is exact K8 and faster than numeric/proto locally.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
