@@ -1275,7 +1275,11 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
         stop_at = min(deadline, time.monotonic() + float(max_s))
         ordered: list[str] = []
-        for template in (*templates, default_template):
+        # Always measure the hosted-proven fallback first.  The selector budget
+        # can expire before every challenger is tested, especially on T4.  A
+        # challenger should replace the fallback only after beating a measured
+        # fallback, not merely because it appeared earlier in the template list.
+        for template in (default_template, *templates):
             key = str(template or "").strip()
             if key and key not in ordered:
                 ordered.append(key)

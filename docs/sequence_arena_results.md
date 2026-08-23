@@ -1132,18 +1132,27 @@ selector used max elapsed over two probes, which was safe but could overweight
 the first cold probe even though that probe is negligible in a 500-entry replay
 bank.
 
+The selector also measures the hosted-proven fallback
+`current_numeric_1_8` first, before any challenger arm.  This is important
+because the selector has a hard time budget.  If the budget expires before every
+challenger is tested, the code should fall back to a measured hosted-proven
+anchor, not pick whichever unproven arm happened to appear earliest in the list.
+
 Validation:
 
 - Unit test `test_online_selector_scores_duplicate_steady_state` covers a case
   where the old max-over-probes selector would choose the wrong arm.
+- Unit test `test_online_selector_measures_fallback_before_challengers` covers
+  the bounded-budget case where the fallback is measured but challengers cannot
+  complete their full probe set.
 - Bounded GPT live-fill smoke with one classification sample, two selector arms,
   three selector probes, and a three-candidate replay cap returned:
   `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
-  `score_normalized=1.93`, `attack_elapsed_s=29.457`.
+  `score_normalized=1.93`, `attack_elapsed_s=29.017`.
 - The prepared notebook
   `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb`
   was rebuilt after the selector change and its embedded attack SHA-256 matched
-  the current `attack.py` (`dd11476710c6f1b954133b94f19173f873a76e16983379832f82e875816cf4e9`).
+  the current `attack.py` (`2abfd3512faeac86b373ad24f0a005cf51db3b0877e5c43b251e738928dcfea2`).
 
 Interpretation: this is a production-path improvement for the next hosted
 selector submission, not proof that the exact-phrase arm transfers.  The

@@ -112,8 +112,9 @@ def test_online_selector_scores_duplicate_steady_state(monkeypatch: Any) -> None
         def export_trace_dict(self) -> dict[str, Any]:
             return self.trace
 
+    env = FakeEnv()
     chosen = module.AttackAlgorithm({})._select_gpt_duplicate_k8_template(
-        FakeEnv(),
+        env,
         run_started=now[0],
         deadline=now[0] + 1000.0,
         cap=500,
@@ -131,3 +132,61 @@ def test_online_selector_scores_duplicate_steady_state(monkeypatch: Any) -> None
     )
 
     assert chosen == "developer_low_bare_digits_opaque_ban_exact_phrases"
+
+
+def test_online_selector_measures_fallback_before_challengers(monkeypatch: Any) -> None:
+    module = load_validation_fill_module()
+    now = [1000.0]
+
+    monkeypatch.setattr(module.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(module, "_banked_k8_msg", lambda item, n: item[0])
+
+    class FakeEnv:
+        def __init__(self) -> None:
+            self.samples = {
+                "M": [1.0, 1.0, 1.0],
+                "H": [1.0, 1.0, 1.0],
+            }
+            self.trace: dict[str, Any] = {}
+
+        def reset(self) -> None:
+            pass
+
+        def interact(self, msg: str, max_tool_hops: int) -> None:
+            elapsed = self.samples[msg].pop(0)
+            now[0] += elapsed
+            self.trace = {
+                "tool_events": [
+                    {
+                        "ok": True,
+                        "name": "http.post",
+                        "args": {"data": module.PAYLOAD, "url": str(i)},
+                    }
+                    for i in range(max_tool_hops)
+                ]
+            }
+
+        def export_trace_dict(self) -> dict[str, Any]:
+            return self.trace
+
+    env = FakeEnv()
+    chosen = module.AttackAlgorithm({})._select_gpt_duplicate_k8_template(
+        env,
+        run_started=now[0],
+        deadline=now[0] + 1000.0,
+        cap=500,
+        hops=8,
+        seed_slowest=0.01,
+        bank_index=11565,
+        default_template="current_numeric_1_8",
+        templates=(
+            "developer_low_bare_digits_opaque_ban_exact_phrases",
+            "current_numeric_1_8",
+        ),
+        probes=3,
+        warmup_probes=1,
+        max_s=7.0,
+    )
+
+    assert chosen == "current_numeric_1_8"
+    assert len(env.samples["H"]) == 3
