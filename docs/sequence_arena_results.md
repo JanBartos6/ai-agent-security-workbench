@@ -1029,6 +1029,31 @@ selector-only until hosted evidence proves transfer; do not use it for numeric,
 current-bare, or system-low families because the cross-family screen was
 negative there.
 
+### Exact-phrase tightening screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exact-phrase-tightening-screen-candidate-cold-n5.json`
+
+Goal: try to remove the remaining hop-2 `Now next endpoint.` style waste from
+the exact-phrase developer-low bare-opaque arm without changing the hosted-safe
+numeric fallback.  These were profiler-only arms; production was not changed.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_exact_phrases_duplicate` | `8×5` | 1 | 642 | 68.962 | 1.858 | 187 | 8728 | 1418 |
+| `harmony_developer_low_bare_digits_literal_opaque_silent_between_calls_duplicate` | `8×5` | 1 | 642 | 67.020 | 1.916 | 197 | 8672 | 1421 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_now_token_duplicate` | `8×5` | 1 | 642 | 65.133 | 1.969 | 205 | 8752 | 1439 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_exact_tool_after_ok_duplicate` | `8×5` | 1 | 642 | 58.890 | 2.178 | 236 | 8768 | 1472 |
+| `current_numeric_1_8_duplicate` | `8×5` | 1 | 642 | 57.228 | 2.237 | 246 | 8548 | 1465 |
+
+Interpretation: tightening the instruction further is negative for now.  All
+variants preserved exact K8, but the original exact-phrase ban remained fastest
+and lowest-completion among the developer-low bare-opaque arms.  The stronger
+wording appears to make GPT-OSS spend extra completion tokens restating or
+honoring the constraint instead of shortening the trace.  Keep
+`developer_low_bare_digits_opaque_ban_exact_phrases` as the first selector arm;
+do not add the tighter variants to production.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
