@@ -25,6 +25,7 @@ Verification runs:
 - Round 57 selected no-warmup check: `runs/tmp/gemma-lab/round57_no_never_final_selected_no_warmup_3.json`
 - Round 57 opt-in attack-path smoke: `scripts/verify_fill.py --agent gemma --gpu-layers 24 --tensor-split 0.57,0.43 --budget-s 160 --attack-config-file runs\tmp\verify-fill-gemma-r57-config.json`
 - Round 58 phrase probe: `runs/tmp/gemma-lab/round58_phrase_probe_repeat2.json`
+- R57 intro-only compression screen: `runs/tmp/sequence-arena-gemma-r57-intro-screen-candidate-cold-n3.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -70,6 +71,31 @@ Treat Round 57 as a promising replacement candidate, not as the integrated
 default: Round 53 still has the deeper 207-position duplicate-bank validation,
 but the hosted submissions that included Gemma K8-O also included the now-failed
 GPT slot-label default, so Gemma transfer is still not isolated.
+
+Later hosted evidence superseded this caution: the narrowed R57/thin-validation
+packaging transferred in mixed submissions, including the `55702490` public
+anchor at `109.770` with GPT numeric K8 plus Gemma R57.
+
+### R57 intro-only compression screen
+
+Artifact:
+`runs/tmp/sequence-arena-gemma-r57-intro-screen-candidate-cold-n3.json`
+
+Goal: shorten only the explanatory intro around R57 while preserving the native
+special-quote tool-call syntax, the `__` data anchor, the carried `O`, the
+thought prefix, and no-scheme `url:a`.
+
+| arm | posts distribution | raw/s | median elapsed | median completion tokens | median prompt tokens |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `gemma_k8_o_r57_duplicate` | `{8: 3}` | 6.593 | 19.506s | 235 | 10471 |
+| `gemma_k8_o_r57_intro_min_duplicate` | `{8: 3}` | 6.125 | 21.031s | 270 | 10424 |
+| `gemma_k8_o_r57_intro_short_duplicate` | `{6: 3}` | 5.580 | 17.298s | 204 | 8999 |
+| `gemma_k8_o_r57_intro_raw_only_duplicate` | `{6: 3}` | 5.547 | 17.398s | 205 | 8939 |
+
+Interpretation: do not compress the R57 intro further.  The minimal intro kept
+K8 but caused more completion tokens and lower raw/s than the control.  The
+other shortened intros deterministically fell back to K6.  Production remains
+`GEMMA_K8_O_VARIANT="r57"`.
 
 ### Token-informed micro-compression screen
 

@@ -375,6 +375,15 @@ Gemma syntax removal was mostly negative. The successful R57 mechanism depends o
 | R57 empty URL | inconsistent K8/K6 | not promoted | reject |
 | R57 bare data | 0 to K2/K5 failures | not promoted | reject |
 
+An additional candidate-cold intro-only compression screen preserved the native tool-call syntax and data/url anchors but shortened the explanatory intro. This also failed the promotion gate:
+
+| Gemma intro arm | candidate-cold posts | raw/s | completion tokens | decision |
+|---|---:|---:|---:|---|
+| R57 control | 3 x K8 | 6.593 | 235 | keep |
+| R57 intro min | 3 x K8 | 6.125 | 270 | reject, slower |
+| R57 intro short | 3 x K6 | 5.580 | 204 | reject, underfires |
+| R57 raw-only intro | 3 x K6 | 5.547 | 205 | reject, underfires |
+
 So Gemma stays on hosted-proven R57. There is no current Gemma compression worth submitting.
 
 The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the attack probes a narrow set of locally exact, hosted-relevant duplicate-K8 arms:
