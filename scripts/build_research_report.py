@@ -231,6 +231,7 @@ The main built components are:
 - `scripts/verify_fill.py`: local smoke-test path that exercises the live-fill loop without forcing a candidate count.
 - `scripts/build_kaggle_notebook.py`: creates a Kaggle notebook that embeds the local `attack.py`.
 - `scripts/kaggle_submit.py`: pushes, waits for kernel execution, and submits the produced `submission.csv` correctly for this code competition.
+- `scripts/check_hosted_ablation_status.py`: read-only Kaggle status checker for pending GPT selector/system-low/bare-opaque ablations; it prints the wait/promote/rollback decision against the 109.770 anchor.
 - `scripts/profile_k8.py`: GPT-OSS/Gemma K-hop profiler using the real local model server, parser, guardrail, tools, token capture, and predicate scorer.
 - `scripts/profile_gemma_json_fixedpoint.py`: Gemma parser fixed-point profiler for native, single-brace JSON, double-brace ASCII JSON, and special-token JSON tool-call forms.
 - `scripts/profile_gemma_k2_terminal.py`: Gemma K2-terminal profiler that tests whether the reliable two-call window can beat two separate K1 candidates.
@@ -974,7 +975,7 @@ The key engineering mistake to avoid is optimizing character count when completi
 ## 22. Concrete next-run plan
 
 1. Preserve `55702490` / 109.770 as the rollback anchor: GPT numeric K8 plus Gemma R57.
-2. Wait for `55717477`, `55718913`, `55720868`, and `55721360`. If a hosted selector/system-low/bare-opaque variant beats 109.770, promote that exact submitted family; if all lose, roll the GPT fallback back to `current_numeric_1_8`.
+2. Run `python -X utf8 scripts/check_hosted_ablation_status.py` to monitor `55717477`, `55718913`, `55720868`, and `55721360`. If a hosted selector/system-low/bare-opaque variant beats 109.770, promote that exact submitted family; if all lose, roll the GPT fallback back to `current_numeric_1_8`.
 3. Do not promote developer-low numeric despite candidate-cold speed; grouped/warm replay collapses to K7.
 4. Do not promote multi-message/geometric-tail variants. The best exact 2 x K8 chain is roughly break-even locally and higher block counts degrade.
 5. Drop repeat-to-cap, cache-primed replay, commentary tool-header prefill, data-suffix state queues, and late-unique K8 for now. They were directly tested and lost locally.
