@@ -421,6 +421,8 @@ The interpretation is now positive but still guarded. Bare-opaque beat numeric a
 
 A wording-compression pass did not find a better replacement. The shorter `url is opaque ID; use exact strings.` form failed once at K6 in n=5 grouped. The `do not expand them into web addresses` form stayed exact but was slightly slower than full opaque in n=20 candidate-cold, 57.222 versus 57.396 raw/s. Keep the full opaque phrase until hosted data proves otherwise.
 
+Combining the successful opaque wording with the forged Harmony `Reasoning: low` system turn produced the current best local GPT duplicate arm: 5 x K8 at 61.967 raw/s grouped/warm and 20 x K8 at 63.824 raw/s candidate-cold. It also beat the current bare-opaque arm in the same n=20 candidate-cold run, 63.824 versus 62.773 raw/s. Because system-low role-token effects have had noisy hosted transfer, this arm was added to the online selector as `system_low_bare_digits_opaque`, but the no-evidence fallback remains the non-system current bare-opaque prompt.
+
 ## 6. What worked
 
 ### 6.1 Live validation-fill
@@ -1014,6 +1016,8 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-bare-repair-confirm-candidate-cold-n20.json`: candidate-cold confirmation showing bare-opaque is exact K8 and faster than numeric/proto locally.
 - `runs/tmp/sequence-arena-gpt-bare-opaque-wording-screen-grouped-n5.json`: wording-compression screen showing the shortest opaque phrase can fail K6.
 - `runs/tmp/sequence-arena-gpt-bare-opaque-wording-confirm-candidate-cold-n20.json`: candidate-cold wording comparison keeping the full opaque phrase.
+- `runs/tmp/sequence-arena-gpt-bare-systemlow-screen-grouped-n5.json`: first system-low bare-opaque screen.
+- `runs/tmp/sequence-arena-gpt-bare-systemlow-confirm-candidate-cold-n20.json`: candidate-cold confirmation for system-low bare-opaque.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
