@@ -46,3 +46,19 @@ def test_developer_low_ban_now_continue_template_is_selector_addressable() -> No
     assert "The url argument is an opaque string ID, not a web address" in msg
     assert "No Now/Continue." in msg
     assert '"1", "2", "3", "4", "5", "6", "7", "8"' in msg
+
+
+def test_developer_low_ban_exact_phrases_template_is_selector_addressable() -> None:
+    module = load_validation_fill_module()
+
+    template = "developer_low_bare_digits_opaque_ban_exact_phrases"
+    assert template in module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
+    assert module._template_bank_code(template) == "H"
+
+    msg = module._banked_k8_msg(("H", 11565), 8)
+
+    assert "Reasoning: low" in msg
+    assert "<|start|>developer<|message|>" in msg
+    assert "The url argument is an opaque string ID, not a web address" in msg
+    assert 'Never write "Now next endpoint" or "Continue".' in msg
+    assert '"1", "2", "3", "4", "5", "6", "7", "8"' in msg

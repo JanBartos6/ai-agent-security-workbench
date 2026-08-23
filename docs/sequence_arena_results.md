@@ -990,6 +990,43 @@ model spend more completion tokens while still preserving K8, so do not add
 numeric-ban, current-bare-ban, or system-low-ban variants to production.  Keep
 only `developer_low_bare_digits_opaque_ban_now_continue` as the selector hedge.
 
+### Exact early-hop phrase ban
+
+Artifacts:
+`runs/tmp/sequence-arena-gpt-bare-snippet-ban-screen-candidate-cold-n5.json`
+and
+`runs/tmp/sequence-arena-gpt-bare-snippet-ban-confirm-candidate-cold-n20.json`
+
+Goal: target the remaining actual snippet waste more precisely.  The earlier
+`No Now/Continue` arm compacted hop 8 but did not remove the hop-2/hop-3
+analysis snippets.  This run tested exact phrase bans and two stronger
+tool-call-only variants.
+
+Small n=5 screen:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_now_continue_duplicate` | `8×5` | 1 | 642 | 62.997 | 2.038 | 197 | 8680 | 1422 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_exact_phrases_duplicate` | `8×5` | 1 | 642 | 65.207 | 1.964 | 187 | 8728 | 1418 |
+| `harmony_developer_low_bare_digits_literal_opaque_direct_after_ok_duplicate` | `8×5` | 1 | 642 | 59.418 | 2.165 | 214 | 8664 | 1437 |
+| `harmony_developer_low_bare_digits_literal_opaque_commentary_first_duplicate` | `8×5` | 1 | 642 | 53.502 | 2.411 | 248 | 8656 | 1470 |
+
+The exact phrase ban was the only positive arm, so it was confirmed at n=20:
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×20` | 1 | 2562 | 61.196 | 2.099 | 200.0 | 8640.0 | 1420.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_now_continue_duplicate` | `8×20` | 1 | 2562 | 62.522 | 2.048 | 197.0 | 8680.0 | 1422.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_ban_exact_phrases_duplicate` | `8×20` | 1 | 2562 | 64.359 | 1.987 | 187.0 | 8728.0 | 1418.0 |
+
+Per-hop inspection shows the exact phrase ban removed the hop-3 `Continue.`
+snippet and kept hop 8 compact, but still emits a shorter hop-2 `Now next
+endpoint.` note.  It is now the local best developer-low bare-opaque selector
+arm and should be placed before the older `No Now/Continue` arm.  Keep it
+selector-only until hosted evidence proves transfer; do not use it for numeric,
+current-bare, or system-low families because the cross-family screen was
+negative there.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
