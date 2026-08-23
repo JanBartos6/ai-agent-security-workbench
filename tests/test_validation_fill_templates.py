@@ -87,11 +87,16 @@ def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> Non
     assert module.GPT_DUPLICATE_K8_TEMPLATE == "current_numeric_1_8"
     assert module.GPT_ONLINE_SELECT_PROBES == 3
     assert module.GPT_ONLINE_SELECT_WARMUP_PROBES == 1
-    assert module.GPT_ONLINE_SELECT_MAX_S == 900.0
+    assert module.GPT_ONLINE_SELECT_MAX_S == 1500.0
+    assert module.GPT_ONLINE_SELECT_STRATEGY == "successive_halving"
+    assert module._int_csv(module.GPT_ONLINE_SELECT_HALVING_PROBES, ()) == (3, 4, 5, 5)
     assert templates == (
         "developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5",
         "developer_low_bare_digits_opaque_ban_exact_phrases",
-        "current_numeric_1_8",
+        "system_low_bare_digits_opaque",
+        "current_bare_digits_opaque",
+        "current_proto_digits_literal",
+        "current_numeric_system_low",
     )
 
 
@@ -269,6 +274,71 @@ def test_online_selector_measures_fallback_before_challengers(monkeypatch: Any) 
 
     assert chosen == "current_numeric_1_8"
     assert len(env.samples["H"]) == 3
+
+
+def test_online_selector_successive_halving_advances_fast_exact_arm(monkeypatch: Any) -> None:
+    module = load_validation_fill_module()
+    now = [1000.0]
+
+    monkeypatch.setattr(module.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(
+        module,
+        "_gpt_duplicate_k8_messages",
+        lambda template, bank_index, n: (template,),
+    )
+
+    class FakeEnv:
+        def __init__(self) -> None:
+            self.samples = {
+                "current_numeric_1_8": [2.0, 2.0, 2.0],
+                "fast_exact": [1.0, 1.0, 1.0],
+                "slow_exact": [3.0],
+                "underfire": [0.5],
+            }
+            self.trace: dict[str, Any] = {}
+
+        def reset(self) -> None:
+            pass
+
+        def interact(self, msg: str, max_tool_hops: int) -> None:
+            elapsed = self.samples[msg].pop(0)
+            now[0] += elapsed
+            posts = max_tool_hops - 1 if msg == "underfire" else max_tool_hops
+            self.trace = {
+                "tool_events": [
+                    {
+                        "ok": True,
+                        "name": "http.post",
+                        "args": {"data": module.PAYLOAD, "url": str(i)},
+                    }
+                    for i in range(posts)
+                ]
+            }
+
+        def export_trace_dict(self) -> dict[str, Any]:
+            return self.trace
+
+    env = FakeEnv()
+    chosen = module.AttackAlgorithm({})._select_gpt_duplicate_k8_template(
+        env,
+        run_started=now[0],
+        deadline=now[0] + 1000.0,
+        cap=500,
+        hops=8,
+        seed_slowest=0.01,
+        bank_index=11565,
+        default_template="current_numeric_1_8",
+        templates=("fast_exact", "slow_exact", "underfire"),
+        probes=3,
+        warmup_probes=0,
+        max_s=100.0,
+        strategy="successive_halving",
+        halving_probes=(1, 1, 1),
+    )
+
+    assert chosen == "fast_exact"
+    assert env.samples["underfire"] == []
+    assert env.samples["slow_exact"] == []
 
 
 def test_fill_gpt_duplicate_k8_returns_multi_message_candidates(monkeypatch: Any) -> None:

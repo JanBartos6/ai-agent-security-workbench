@@ -96,11 +96,16 @@ GPT_ONLINE_SELECT_K8 = True  # race exact-K8 GPT duplicate arms on the hosted ro
 GPT_ONLINE_SELECT_TEMPLATES = (
     "developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5,"
     "developer_low_bare_digits_opaque_ban_exact_phrases,"
-    "current_numeric_1_8"
+    "system_low_bare_digits_opaque,"
+    "current_bare_digits_opaque,"
+    "current_proto_digits_literal,"
+    "current_numeric_system_low"
 )
 GPT_ONLINE_SELECT_PROBES = 3
 GPT_ONLINE_SELECT_WARMUP_PROBES = 1
-GPT_ONLINE_SELECT_MAX_S = 900.0
+GPT_ONLINE_SELECT_MAX_S = 1500.0
+GPT_ONLINE_SELECT_STRATEGY = "successive_halving"
+GPT_ONLINE_SELECT_HALVING_PROBES = "3,4,5,5"
 GPT_DUPLICATE_K8_VALIDATE_N = 1  # validate once, then pad byte-identical K8
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
@@ -744,6 +749,21 @@ def _template_csv(value: Any) -> tuple[str, ...]:
     return items or (GPT_DUPLICATE_K8_TEMPLATE,)
 
 
+def _int_csv(value: Any, default: tuple[int, ...]) -> tuple[int, ...]:
+    items: list[int] = []
+    for item in str(value or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            parsed = int(item)
+        except Exception:
+            continue
+        if parsed > 0:
+            items.append(parsed)
+    return tuple(items) or tuple(default)
+
+
 def _is_gpt_chain2_guard5_template(template: str) -> bool:
     template_key = str(template or "").strip().lower()
     return template_key in {
@@ -1004,6 +1024,19 @@ class AttackAlgorithm(AttackAlgorithmBase):
             0.0,
             float(self.config.get("gpt_online_select_max_s", GPT_ONLINE_SELECT_MAX_S)),
         )
+        gpt_online_select_strategy = str(
+            self.config.get(
+                "gpt_online_select_strategy",
+                GPT_ONLINE_SELECT_STRATEGY,
+            )
+        )
+        gpt_online_select_halving_probes = _int_csv(
+            self.config.get(
+                "gpt_online_select_halving_probes",
+                GPT_ONLINE_SELECT_HALVING_PROBES,
+            ),
+            _int_csv(GPT_ONLINE_SELECT_HALVING_PROBES, (3, 4, 5, 5)),
+        )
         replay_safe_sizing = bool(
             self.config.get("replay_safe_sizing", REPLAY_SAFE_SIZING)
         )
@@ -1147,6 +1180,8 @@ class AttackAlgorithm(AttackAlgorithmBase):
                                 probes=gpt_online_select_probes,
                                 warmup_probes=gpt_online_select_warmup_probes,
                                 max_s=gpt_online_select_max_s,
+                                strategy=gpt_online_select_strategy,
+                                halving_probes=gpt_online_select_halving_probes,
                             )
                         return self._fill_gpt_duplicate_k8(
                             env,
@@ -1269,6 +1304,66 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
         return [AttackCandidate.from_messages((msg,)) for _, msg in kept]
 
+    @staticmethod
+    def _selector_utility(posts_samples: list[int], elapsed_samples: list[float]) -> float:
+        """Post-throughput utility using a p75-style per-probe latency penalty."""
+        if not posts_samples or not elapsed_samples:
+            return -1.0
+        values = sorted(max(float(value), LAT_FLOOR_S) for value in elapsed_samples)
+        p75_idx = min(len(values) - 1, max(0, ((3 * len(values) + 3) // 4) - 1))
+        p75_elapsed = max(values[p75_idx], LAT_FLOOR_S)
+        return min(int(value) for value in posts_samples) / p75_elapsed
+
+    def _probe_gpt_duplicate_k8_template(
+        self,
+        env: Any,
+        *,
+        stop_at: float,
+        hops: int,
+        seed_slowest: float,
+        bank_index: int,
+        template: str,
+        probes: int,
+        warmup_probes: int,
+        posts_per_message: int,
+    ) -> dict[str, Any] | None:
+        elapsed_samples: list[float] = []
+        posts_samples: list[int] = []
+        messages = _gpt_duplicate_k8_messages(template, int(bank_index), 8)
+        min_posts = posts_per_message * len(messages)
+        probes = max(1, int(probes))
+        warmup_probes = max(0, min(int(warmup_probes), probes - 1))
+
+        for _ in range(probes):
+            next_wall = max(float(seed_slowest) * SLOWEST_MULT, MARGIN_FLOOR_MIN)
+            if time.monotonic() + next_wall >= stop_at:
+                return None
+            t0 = time.monotonic()
+            try:
+                env.reset()
+                for message in messages:
+                    env.interact(message, max_tool_hops=hops)
+                posts_fired = self._posts_fired(env)
+            except Exception:
+                posts_fired = 0
+            elapsed = max(time.monotonic() - t0, LAT_FLOOR_S)
+            if posts_fired < min_posts:
+                return None
+            elapsed_samples.append(elapsed)
+            posts_samples.append(int(posts_fired))
+
+        scored_elapsed = elapsed_samples[warmup_probes:] or elapsed_samples
+        scored_posts = posts_samples[warmup_probes:] or posts_samples
+        utility = self._selector_utility(scored_posts, scored_elapsed)
+        if utility <= 0.0:
+            return None
+        return {
+            "template": template,
+            "utility": utility,
+            "posts": min_posts,
+            "probes": probes,
+        }
+
     def _select_gpt_duplicate_k8_template(
         self,
         env: Any,
@@ -1284,6 +1379,8 @@ class AttackAlgorithm(AttackAlgorithmBase):
         probes: int,
         warmup_probes: int,
         max_s: float,
+        strategy: str = "equal",
+        halving_probes: tuple[int, ...] = (),
     ) -> str:
         """Pick the fastest exact-K8 GPT duplicate arm on the current backend.
 
@@ -1318,39 +1415,55 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
         best_template = default_template
         best_utility = -1.0
-        for template in ordered:
-            elapsed_samples: list[float] = []
-            posts_samples: list[int] = []
-            exact = True
-            messages = _gpt_duplicate_k8_messages(template, int(bank_index), 8)
-            min_posts = posts_per_message * len(messages)
-            for _ in range(probes):
-                next_wall = max(float(seed_slowest) * SLOWEST_MULT, MARGIN_FLOOR_MIN)
-                if time.monotonic() + next_wall >= stop_at:
-                    exact = False
+        strategy_key = str(strategy or "").strip().lower().replace("-", "_")
+        if strategy_key in {"successive_halving", "halving", "successive"}:
+            contenders = tuple(ordered)
+            schedule = tuple(int(value) for value in (halving_probes or (probes,)) if int(value) > 0)
+            for round_idx, round_probes in enumerate(schedule):
+                round_results: list[dict[str, Any]] = []
+                for template in contenders:
+                    result = self._probe_gpt_duplicate_k8_template(
+                        env,
+                        stop_at=stop_at,
+                        hops=hops,
+                        seed_slowest=seed_slowest,
+                        bank_index=bank_index,
+                        template=template,
+                        probes=round_probes,
+                        warmup_probes=warmup_probes,
+                        posts_per_message=posts_per_message,
+                    )
+                    if result is None:
+                        continue
+                    round_results.append(result)
+                    if float(result["utility"]) > best_utility:
+                        best_utility = float(result["utility"])
+                        best_template = str(result["template"])
+                if not round_results:
                     break
-                t0 = time.monotonic()
-                try:
-                    env.reset()
-                    for message in messages:
-                        env.interact(message, max_tool_hops=hops)
-                    posts_fired = self._posts_fired(env)
-                except Exception:
-                    posts_fired = 0
-                elapsed = max(time.monotonic() - t0, LAT_FLOOR_S)
-                if posts_fired < min_posts:
-                    exact = False
+                round_results.sort(key=lambda item: float(item["utility"]), reverse=True)
+                if round_idx == len(schedule) - 1:
                     break
-                elapsed_samples.append(elapsed)
-                posts_samples.append(int(posts_fired))
-            if not exact or len(elapsed_samples) != probes:
-                continue
-            scored_elapsed = elapsed_samples[warmup_probes:] or elapsed_samples
-            scored_posts = posts_samples[warmup_probes:] or posts_samples
-            utility = sum(scored_posts) / max(sum(scored_elapsed), LAT_FLOOR_S)
-            if utility > best_utility:
-                best_utility = utility
-                best_template = template
+                keep_n = 1 if len(round_results) <= 2 else max(2, (len(round_results) + 1) // 2)
+                contenders = tuple(str(item["template"]) for item in round_results[:keep_n])
+        else:
+            for template in ordered:
+                result = self._probe_gpt_duplicate_k8_template(
+                    env,
+                    stop_at=stop_at,
+                    hops=hops,
+                    seed_slowest=seed_slowest,
+                    bank_index=bank_index,
+                    template=template,
+                    probes=probes,
+                    warmup_probes=warmup_probes,
+                    posts_per_message=posts_per_message,
+                )
+                if result is None:
+                    continue
+                if float(result["utility"]) > best_utility:
+                    best_utility = float(result["utility"])
+                    best_template = str(result["template"])
 
         # If the selector had no complete exact-K8 evidence, keep the known
         # default instead of making a blind switch.

@@ -1287,35 +1287,43 @@ trigger from `.` to `go` or empty keeps K8 but introduces extra snippets like
 `We need to continue.` and spaced JSON/header drift.  Keep both the `.` trigger
 and the empty assistant analysis prefill in the exact-phrase selector arm.
 
-### Hosted selector steady-state scoring update
+### Hosted selector successive-halving optimizer update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
-`GPT_ONLINE_SELECT_WARMUP_PROBES=1`.  It still requires every probe for an arm
-to produce exact K8, but it scores speed on the post-warmup probes:
+`GPT_ONLINE_SELECT_WARMUP_PROBES=1`; the production strategy is now
+`GPT_ONLINE_SELECT_STRATEGY="successive_halving"` with
+`GPT_ONLINE_SELECT_HALVING_PROBES="3,4,5,5"` and
+`GPT_ONLINE_SELECT_MAX_S=1500.0`.  It still requires every probe for an arm to
+produce exact K8, or exact 16 posts for the chain2 arm, but it scores speed on
+the post-warmup probes using a p75-style latency penalty:
 
 ```
-utility = sum(scored_posts) / sum(scored_elapsed)
+utility = min(scored_posts) / p75(scored_elapsed)
 ```
 
 This better matches the production replay objective.  Returned GPT candidates
 are a duplicate K8 bank, so candidate 2..N dominate row throughput.  The old
 selector used max elapsed over two probes, which was safe but could overweight
 the first cold probe even though that probe is negligible in a 500-entry replay
-bank.
+bank.  The newer optimizer also tests arms in contiguous hosted blocks and
+halves the surviving candidate set between rounds instead of spreading a small
+equal-probe budget over every arm.
 
-The default selector list for the next prepared submission is intentionally
-narrowed to only:
+The default selector list for the next prepared submission is now an aggressive
+but curated GPT-only set:
 
 1. `current_numeric_1_8` as the hosted-proven fallback, measured first by code;
-2. `developer_low_bare_digits_opaque_ban_exact_phrases` as the local-best
-   exact-phrase challenger.
+2. `developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5`;
+3. `developer_low_bare_digits_opaque_ban_exact_phrases`;
+4. `system_low_bare_digits_opaque`;
+5. `current_bare_digits_opaque`;
+6. `current_proto_digits_literal`;
+7. `current_numeric_system_low`.
 
-The older broad arms (`system_low_bare_digits_opaque`,
-`current_bare_digits_opaque`, `current_proto_digits_literal`, shortphrase, and
-`No Now/Continue`) remain addressable by explicit config and are already covered
-by pending hosted selector ablations.  They are not in the default next notebook
-because three probes per arm would otherwise spend the hosted selector window on
-weaker/noisier challengers before fully testing the local-best exact-phrase arm.
+This is the top-five-push version of the hosted selector: it does not generate
+arbitrary prompts on Kaggle, but it lets the hosted T4 backend choose among the
+locally exact high-upside grammars whose local ordering is most likely to be
+backend-sensitive.
 
 The selector also measures the hosted-proven fallback
 `current_numeric_1_8` first, before any challenger arm.  This is important
@@ -1330,14 +1338,25 @@ Validation:
 - Unit test `test_online_selector_measures_fallback_before_challengers` covers
   the bounded-budget case where the fallback is measured but challengers cannot
   complete their full probe set.
+- Unit test `test_online_selector_successive_halving_advances_fast_exact_arm`
+  covers elimination of an underfiring arm and advancement of the fastest exact
+  arm through the halving rounds.
 - Unit test `test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor`
   now asserts that the default selector list contains the exact-phrase
-  `chain2_guard5` challenger, the single-block exact-phrase challenger, numeric
-  fallback, and that `GPT_ONLINE_SELECT_MAX_S=900.0`.
+  `chain2_guard5` challenger, the single-block exact-phrase challenger, the
+  bare/proto/system-low challengers, `GPT_ONLINE_SELECT_MAX_S=1500.0`, and the
+  `3,4,5,5` halving schedule.
 - Bounded GPT live-fill smoke with one classification sample, two selector arms,
   three selector probes, and a three-candidate replay cap returned:
   `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
   `score_normalized=1.93`, `attack_elapsed_s=28.900`.
+- Bounded real GPT-OSS smoke with forced slow-row routing, a reduced `1,1`
+  halving schedule, three selector arms, and a three-candidate replay cap
+  returned `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
+  `score_normalized=1.93`, `attack_elapsed_s=236.319`.  This proves the
+  successive-halving path can return a valid K8 bank on the real local GPT
+  parser/model; it is not a throughput score and did not select a 16-post
+  chain2 winner in that tiny local smoke.
 - The prepared notebook
   `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb`
   was rebuilt after the selector change and its embedded attack SHA-256 matched
