@@ -1143,6 +1143,31 @@ mode-specific to justify replacing or expanding the hosted selector before the
 pending selector submissions return.  Keep the existing exact-phrase arm as the
 selector head and treat short-prefix exact-ban as a documented negative.
 
+### Exact-ban final-control screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-final-control-screen-candidate-cold-n5.json`
+
+Goal: test whether the current exact-phrase selector arm can reduce completion
+tokens by shortening or removing the final-answer instruction.  This is the
+same idea that made some earlier prompts attractive locally, but tested inside
+the current strongest developer-low bare-opaque exact-phrase family.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| existing exact-phrase | `8×5` | 69.724 | 187 | keep |
+| short final: `After "8", OK.` | `8×5` | 64.434 | 209 | reject |
+| no-final counted | `8×5` | 51.634 | 281 | reject |
+| short no-final counted | `8×5` | 50.872 | 265 | reject |
+| numeric anchor | `8×5` | 53.656 | 246 | anchor only |
+
+Interpretation: removing or shortening the final-control text does not help the
+current exact-phrase family.  All variants preserved exact K8, but the model
+spent substantially more completion tokens interpreting the altered stopping
+rule.  The existing `After all posts, final OK` wording is locally load-bearing
+for trace compactness, not just reliability.  Do not add no-final/short-final
+exact-phrase variants to production or the hosted selector.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
