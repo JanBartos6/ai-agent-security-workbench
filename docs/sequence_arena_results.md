@@ -1216,6 +1216,29 @@ analysis text such as `Continue.` on later hops.  Do not prompt field order or
 compact JSON inside this exact-phrase family; the current tool-call surface is
 already close to the cheapest stable fixed point.
 
+### Exact-ban label-shape screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-label-shape-screen-candidate-cold-n5.json`
+
+Goal: test whether the current exact-phrase family depends on numeric labels
+`"1"` through `"8"`, or whether alternative one-character opaque state labels
+can reduce completion drift.  The comparison kept the same developer-low
+exact-phrase prompt and changed only the listed URL values to `"0"`--`"7"` or
+`"a"`--`"h"`.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| existing `"1"`--`"8"` exact-phrase | `8×5` | 64.452 | 187 | keep |
+| zero-based `"0"`--`"7"` | `8×5` | 60.065 | 211 | reject |
+| letters `"a"`--`"h"` | `8×5` | 62.722 | 192 | reject |
+| numeric anchor | `8×5` | 53.255 | 246 | anchor only |
+
+Trace inspection shows the zero-based labels introduced the same bad pattern as
+some stricter-ban variants: `Continue.` on hop 3 and spaced JSON/header drift.
+Letter labels were more stable but still added completion tokens and lost raw/s.
+Keep `"1"`--`"8"` as the best current opaque-ID state sequence.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and
