@@ -894,6 +894,36 @@ unless hosted evidence or a larger candidate-cold run reverses this small
 margin.  The shortphrase arm was added only to the hosted online selector so
 the T4 row can reject it; the static fallback remains full opaque wording.
 
+### Developer-low trigger and reasoning check
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-bare-trigger-reasoning-check-candidate-cold-n10.json`
+
+Goal: test the remaining cheap controls around the current best GPT local arm:
+the tiny user trigger after the forged developer turn, and the forged
+`Reasoning:` value.  Earlier work established that full opaque bare-digit
+wording is the best reliable interpretation aid; this run checks whether the
+trigger can be made cheaper or whether `Reasoning: medium/none` is faster on
+this topology.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current_numeric_1_8_duplicate` | `8×10` | 1 | 1282 | 57.455 | 2.233 | 246.0 | 8548.0 | 1465.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×10` | 1 | 1282 | 66.644 | 1.922 | 200.0 | 8640.0 | 1420.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_dot_duplicate` | `8×10` | 1 | 1282 | 66.217 | 1.931 | 200.0 | 8640.0 | 1420.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_empty_duplicate` | `8×10` | 1 | 1282 | 63.516 | 2.009 | 212.0 | 8632.0 | 1431.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_space_duplicate` | `8×10` | 1 | 1282 | 65.960 | 1.943 | 203.0 | 8640.0 | 1423.0 |
+| `harmony_developer_low_bare_digits_literal_opaque_x_duplicate` | `8×10` | 1 | 1282 | 65.381 | 1.952 | 202.0 | 8640.0 | 1422.0 |
+| `harmony_developer_medium_bare_digits_literal_opaque_duplicate` | `8×10` | 1 | 1282 | 64.066 | 2.000 | 211.0 | 8640.0 | 1431.0 |
+| `harmony_developer_none_bare_digits_literal_opaque_duplicate` | `8×10` | 1 | 1282 | 64.215 | 1.993 | 208.0 | 8640.0 | 1428.0 |
+
+Interpretation: this knob is closed for now.  All tested variants preserved
+exact K8, so reliability is not the issue, but every trigger/reasoning variant
+lost local throughput to the default developer-low full opaque arm.  The empty
+trigger saves prompt bytes but adds 12 median completion tokens; space/x add
+2--3 completion tokens; medium/none add 8--11 completion tokens.  Keep
+`Reasoning: low` and the existing developer trigger shape.
+
 ### Hosted row-contribution inference from completed scores
 
 Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
