@@ -742,3 +742,28 @@ median completion tokens than the developer bare-opaque control and lost about
 underfired to K7 in this candidate-cold run.  Do not promote developer proto;
 keep hosted selection focused on already submitted developer bare-opaque,
 system-low/bare, current proto, and numeric controls.
+
+### Developer-low hard no-analysis/compact-output screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-developer-hard-noanalysis-screen-candidate-cold-n5.json`
+
+Goal: inspect the current best developer bare-opaque trace and attack the
+remaining decode waste directly.  Even the best arm sometimes emits small
+analysis snippets such as "Now next endpoint" on early or late hops.  These arms
+try harder no-analysis-channel wording and compact-JSON wording while preserving
+the same bare opaque `1..8` queue.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×5` | 1 | 642 | 62.037 | 2.064 | 200 | 8640 | 1420 |
+| `harmony_developer_low_bare_digits_literal_opaque_noanalysis_channel_duplicate` | `8×5` | 1 | 642 | 61.722 | 2.074 | 202 | 8832 | 1446 |
+| `harmony_developer_low_bare_digits_literal_opaque_compact_json_duplicate` | `8×5` | 1 | 642 | 59.352 | 2.160 | 208 | 8696 | 1435 |
+| `harmony_developer_low_bare_digits_literal_opaque_toolonly_compact_duplicate` | `8×5` | 1 | 642 | 60.059 | 2.141 | 208 | 8816 | 1450 |
+| `harmony_developer_low_bare_digits_literal_opaque_shortanalysis_duplicate` | `8×5` | 1 | 642 | 62.072 | 2.083 | 200 | 8608 | 1416 |
+
+Interpretation: explicit hard no-analysis wording does not buy enough decode
+reduction to offset the longer prompt/history.  Compact-JSON instructions made
+the model generate more completion tokens, not fewer.  The short-analysis arm
+was a statistical tie in this n=5 screen and had already lost the earlier n=20
+candidate-cold confirmation, so production remains unchanged.
