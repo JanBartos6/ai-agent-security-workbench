@@ -17,11 +17,10 @@ def load_validation_fill_module():
     return module
 
 
-def test_developer_low_shortphrase_template_is_selector_addressable() -> None:
+def test_developer_low_shortphrase_template_is_config_addressable() -> None:
     module = load_validation_fill_module()
 
     template = "developer_low_bare_digits_opaque_shortphrase"
-    assert template in module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
     assert module._template_bank_code(template) == "F"
 
     msg = module._banked_k8_msg(("F", 11565), 8)
@@ -33,11 +32,10 @@ def test_developer_low_shortphrase_template_is_selector_addressable() -> None:
     assert "The url argument is an opaque string ID" not in msg
 
 
-def test_developer_low_ban_now_continue_template_is_selector_addressable() -> None:
+def test_developer_low_ban_now_continue_template_is_config_addressable() -> None:
     module = load_validation_fill_module()
 
     template = "developer_low_bare_digits_opaque_ban_now_continue"
-    assert template in module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
     assert module._template_bank_code(template) == "G"
 
     msg = module._banked_k8_msg(("G", 11565), 8)
@@ -73,8 +71,11 @@ def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> Non
     assert module.GPT_DUPLICATE_K8_TEMPLATE == "current_numeric_1_8"
     assert module.GPT_ONLINE_SELECT_PROBES == 3
     assert module.GPT_ONLINE_SELECT_WARMUP_PROBES == 1
-    assert templates[0] == "developer_low_bare_digits_opaque_ban_exact_phrases"
-    assert "current_numeric_1_8" in templates
+    assert module.GPT_ONLINE_SELECT_MAX_S == 900.0
+    assert templates == (
+        "developer_low_bare_digits_opaque_ban_exact_phrases",
+        "current_numeric_1_8",
+    )
 
 
 def test_online_selector_scores_duplicate_steady_state(monkeypatch: Any) -> None:

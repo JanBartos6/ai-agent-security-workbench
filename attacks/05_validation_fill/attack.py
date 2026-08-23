@@ -95,14 +95,11 @@ GPT_DUPLICATE_K8_TEMPLATE = "current_numeric_1_8"  # hosted-proven fallback from
 GPT_ONLINE_SELECT_K8 = True  # race exact-K8 GPT duplicate arms on the hosted row
 GPT_ONLINE_SELECT_TEMPLATES = (
     "developer_low_bare_digits_opaque_ban_exact_phrases,"
-    "developer_low_bare_digits_opaque_ban_now_continue,developer_low_bare_digits_opaque,"
-    "developer_low_bare_digits_opaque_shortphrase,system_low_bare_digits_opaque,"
-    "current_bare_digits_opaque,current_proto_digits_literal,current_numeric_system_low,"
     "current_numeric_1_8"
 )
 GPT_ONLINE_SELECT_PROBES = 3
 GPT_ONLINE_SELECT_WARMUP_PROBES = 1
-GPT_ONLINE_SELECT_MAX_S = 180.0
+GPT_ONLINE_SELECT_MAX_S = 900.0
 GPT_DUPLICATE_K8_VALIDATE_N = 1  # validate once, then pad byte-identical K8
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate

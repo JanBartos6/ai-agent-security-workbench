@@ -1132,6 +1132,20 @@ selector used max elapsed over two probes, which was safe but could overweight
 the first cold probe even though that probe is negligible in a 500-entry replay
 bank.
 
+The default selector list for the next prepared submission is intentionally
+narrowed to only:
+
+1. `current_numeric_1_8` as the hosted-proven fallback, measured first by code;
+2. `developer_low_bare_digits_opaque_ban_exact_phrases` as the local-best
+   exact-phrase challenger.
+
+The older broad arms (`system_low_bare_digits_opaque`,
+`current_bare_digits_opaque`, `current_proto_digits_literal`, shortphrase, and
+`No Now/Continue`) remain addressable by explicit config and are already covered
+by pending hosted selector ablations.  They are not in the default next notebook
+because three probes per arm would otherwise spend the hosted selector window on
+weaker/noisier challengers before fully testing the local-best exact-phrase arm.
+
 The selector also measures the hosted-proven fallback
 `current_numeric_1_8` first, before any challenger arm.  This is important
 because the selector has a hard time budget.  If the budget expires before every
@@ -1145,14 +1159,17 @@ Validation:
 - Unit test `test_online_selector_measures_fallback_before_challengers` covers
   the bounded-budget case where the fallback is measured but challengers cannot
   complete their full probe set.
+- Unit test `test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor`
+  now asserts that the default selector list contains only the exact-phrase
+  challenger plus numeric fallback and that `GPT_ONLINE_SELECT_MAX_S=900.0`.
 - Bounded GPT live-fill smoke with one classification sample, two selector arms,
   three selector probes, and a three-candidate replay cap returned:
   `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`,
-  `score_normalized=1.93`, `attack_elapsed_s=29.017`.
+  `score_normalized=1.93`, `attack_elapsed_s=28.900`.
 - The prepared notebook
   `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb`
   was rebuilt after the selector change and its embedded attack SHA-256 matched
-  the current `attack.py` (`2abfd3512faeac86b373ad24f0a005cf51db3b0877e5c43b251e738928dcfea2`).
+  the current `attack.py` (`b1d84e73e3ca2a5f4476b7398f0a907ec2244e2f219e924b24797627f723134f`).
 
 Interpretation: this is a production-path improvement for the next hosted
 selector submission, not proof that the exact-phrase arm transfers.  The

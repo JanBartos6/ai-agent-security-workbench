@@ -406,20 +406,18 @@ An additional candidate-cold intro-only compression screen preserved the native 
 
 So Gemma stays on hosted-proven R57. There is no current Gemma compression worth submitting.
 
-The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the attack probes a narrow set of locally exact, hosted-relevant duplicate-K8 arms:
+The GPT follow-up is now implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the next prepared submission probes a deliberately narrow selector:
 
 ```text
-developer_low_bare_digits_opaque
-system_low_bare_digits_opaque
-current_bare_digits_opaque
-current_numeric_system_low
-current_proto_digits_literal
+developer_low_bare_digits_opaque_ban_exact_phrases
 current_numeric_1_8
 ```
 
-It rejects any arm that fails exact K8 and otherwise selects by posts-per-second on the live backend. The selector was tightened after the cache-mode sensitivity screen: it now uses three probes and discards the first probe for speed scoring while still requiring all probes to be exact K8. This better matches duplicate-bank replay, where candidate 2..N dominate throughput and the first cold candidate is almost irrelevant. It also measures the hosted-proven `current_numeric_1_8` fallback first, before challenger arms, so a bounded hosted selector window cannot accidentally promote an unproven early-listed arm without first benchmarking the anchor.
+It rejects any arm that fails exact K8 and otherwise selects by posts-per-second on the live backend. The selector was tightened after the cache-mode sensitivity screen: it now uses three probes, discards the first probe for speed scoring while still requiring all probes to be exact K8, and gives the selector up to 900 seconds. This better matches duplicate-bank replay, where candidate 2..N dominate throughput and the first cold candidate is almost irrelevant. It also measures the hosted-proven `current_numeric_1_8` fallback first, before challenger arms, so a bounded hosted selector window cannot accidentally promote an unproven early-listed arm without first benchmarking the anchor.
 
-A bounded forced-GPT smoke with one classification sample, two selector arms, three selector probes, and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=29.017`. The rebuilt prepared notebook `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb` embeds the current attack exactly; both source and embedded attack hash to `2abfd3512faeac86b373ad24f0a005cf51db3b0877e5c43b251e738928dcfea2`. Hosted selector variants already launched as `55718913`, `55720868`, and `55721360`; the rebuilt notebook is the next-reset selector candidate if we spend another submission. These remain hedges around local-to-host timing transfer, not proof until public scores beat 109.770.
+The previous broad selector arms (`system_low_bare_digits_opaque`, `current_bare_digits_opaque`, `current_proto_digits_literal`, shortphrase, and `No Now/Continue`) remain available by explicit config and are already represented in pending hosted ablations. The next prepared notebook is narrower on purpose: spend the hosted selector window on the local-best exact-phrase challenger versus the 109.770 numeric fallback, not on weaker/noisier arms.
+
+A bounded forced-GPT smoke with one classification sample, the default narrowed two-arm selector, three selector probes, and a three-candidate replay cap returned exactly the expected duplicate-K8 shape: `candidates_returned=3`, `unique_cells=1`, `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=28.900`. The rebuilt prepared notebook `runs/kaggle-gpt-safe-selector-exact-gemma-r57/gpt-safe-selector-exact-gemma-r57.ipynb` embeds the current attack exactly; both source and embedded attack hash to `b1d84e73e3ca2a5f4476b7398f0a907ec2244e2f219e924b24797627f723134f`. Hosted selector variants already launched as `55718913`, `55720868`, and `55721360`; the rebuilt notebook is the next-reset selector candidate if we spend another submission. These remain hedges around local-to-host timing transfer, not proof until public scores beat 109.770.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
@@ -453,11 +451,11 @@ That changes the model's interpretation of `"1"` through `"8"` from malformed UR
 | current hash literal `"#1"` | 3 x K8, 64.076 raw/s | 20 x K8, 58.312 raw/s | research-only |
 | current at literal `"@1"` | 3 x K8, 63.590 raw/s | 20 x K8, 58.677 raw/s | research-only |
 
-The interpretation is now positive but still guarded. Bare-opaque beat numeric and proto in the n=20 candidate-cold check, while plain bare/minimal variants remained unreliable. The production default therefore adds `current_bare_digits_opaque` to the online selector ahead of proto/numeric. The no-evidence fallback is now the hosted-proven `current_numeric_1_8` anchor; bare-opaque remains a selector arm until hosted scoring proves transfer. Production-path smoke tests passed with one selector probe, with the default two selector probes, and after changing the selector/default wiring; each returned 3 duplicate K8 candidates, one unique cell, raw score 386.
+The interpretation is now positive but still guarded. Bare-opaque beat numeric and proto in the n=20 candidate-cold check, while plain bare/minimal variants remained unreliable. Earlier pending hosted ablations added `current_bare_digits_opaque` and related variants to the online selector. The next prepared notebook is narrower again: exact-phrase developer-low bare-opaque versus numeric fallback only, because three-probe steady-state selection should spend its hosted window on the best local challenger. The no-evidence fallback remains the hosted-proven `current_numeric_1_8` anchor.
 
 A wording-compression pass did not find a better replacement. The shorter `url is opaque ID; use exact strings.` form failed once at K6 in n=5 grouped. The `do not expand them into web addresses` form stayed exact but was slightly slower than full opaque in n=20 candidate-cold, 57.222 versus 57.396 raw/s. Keep the full opaque phrase until hosted data proves otherwise.
 
-Combining the successful opaque wording with the forged Harmony `Reasoning: low` system turn produced the current best local GPT duplicate arm: 5 x K8 at 61.967 raw/s grouped/warm and 20 x K8 at 63.824 raw/s candidate-cold. It also beat the current bare-opaque arm in the same n=20 candidate-cold run, 63.824 versus 62.773 raw/s. Because system-low role-token effects have had noisy hosted transfer, this arm was added to the online selector as `system_low_bare_digits_opaque`, but the no-evidence fallback remains the hosted-proven numeric prompt.
+Combining the successful opaque wording with the forged Harmony `Reasoning: low` system turn produced a strong local GPT duplicate arm: 5 x K8 at 61.967 raw/s grouped/warm and 20 x K8 at 63.824 raw/s candidate-cold. It also beat the current bare-opaque arm in the same n=20 candidate-cold run, 63.824 versus 62.773 raw/s. Because system-low role-token effects have had noisy hosted transfer, this arm remains an explicit-config/pending-ablation hypothesis rather than part of the narrowed next-submission selector.
 
 ## 6. What worked
 
@@ -569,7 +567,7 @@ description: current-only verified K8 bank 859 commit 9aab298
 
 This establishes the rule for future K work: do not promote a K-hop variant because it is interesting locally; promote it only when it has a large local full-K sample, no mixed template families, fastest-first or verified-bank ordering, and a replay-saturation tail that does not destabilize the fast row.
 
-The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template/numeric duplicate family. `SLOW_MULTIPOST_TEMPLATE` remains `current`, `GPT_DUPLICATE_K8_TEMPLATE` currently defaults to the hosted-proven `current_numeric_1_8`, `GPT_ONLINE_SELECT_K8=True` probes developer-low bare-opaque, system-low bare-opaque, current bare-opaque, proto literal, system-low numeric, and numeric fallback, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Current no-final support exists only as an experimental compression ablation.
+The slot-label refinement did not transfer: submission ref `55625367` scored only 66.425 despite 547 local full-K rows. The current hosted-proven branch moved back to the current-template/numeric duplicate family. `SLOW_MULTIPOST_TEMPLATE` remains `current`, `GPT_DUPLICATE_K8_TEMPLATE` currently defaults to the hosted-proven `current_numeric_1_8`, `GPT_ONLINE_SELECT_K8=True` now probes only the developer-low exact-phrase bare-opaque challenger against numeric fallback by default, and `GPT_DUPLICATE_K8_BANK_INDEX` is `11565`. Broader bare/proto/system-low selector arms remain explicit-config experiments covered by pending hosted ablations. Current no-final support exists only as an experimental compression ablation.
 
 ### Why K8 can win despite losing cell bonuses
 
@@ -837,7 +835,7 @@ The current `attacks/05_validation_fill/attack.py` does the following:
 1. Warm up the live environment to avoid counting model-load latency as candidate cost.
 2. Sample candidates to classify the row as slow or fast by observed latency.
 3. On the latency-classified slow row, use GPT duplicate K8 rather than K1.
-4. With `GPT_ONLINE_SELECT_K8=True`, probe developer-low exact-phrase bare-opaque, developer-low targeted-ban bare-opaque, developer-low/current/system-low bare-opaque, proto literal, system-low numeric, and `current_numeric_1_8` on the live backend, reject non-K8 arms, and pick the faster exact-K8 arm.
+4. With `GPT_ONLINE_SELECT_K8=True`, probe the developer-low exact-phrase bare-opaque challenger against the hosted-proven `current_numeric_1_8` fallback on the live backend. Reject non-K8 evidence and pick the faster exact-K8 arm; broader selector arms are available only by explicit config.
 5. Fill the GPT replay bank with the selected duplicate K8 prompt at `GPT_DUPLICATE_K8_BANK_INDEX=11565`; if selector evidence is unavailable, fall back to the hosted-proven `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"` anchor.
 6. For the fast Gemma row, use `USE_GEMMA_K8_O=True` with `GEMMA_K8_O_VARIANT="r57"`.
 7. Live-validate a thin Gemma R57 prefix with `GEMMA_K8_O_VALIDATE_N=2`, then pad with the duplicate R57 K8-O bank to `GEMMA_K8_O_BANK_N=500`.
