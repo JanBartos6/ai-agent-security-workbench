@@ -98,7 +98,7 @@ GPT_ONLINE_SELECT_TEMPLATES = (
 )
 GPT_ONLINE_SELECT_PROBES = 2
 GPT_ONLINE_SELECT_MAX_S = 180.0
-GPT_DUPLICATE_K8_VALIDATE_N = 2  # validate a thin prefix, then pad identical K8
+GPT_DUPLICATE_K8_VALIDATE_N = 1  # validate once, then pad byte-identical K8
 
 BURST_K = 1               # 1 == single-post (today); >1 emits K posts/candidate
 
