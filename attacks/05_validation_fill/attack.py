@@ -91,7 +91,7 @@ GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K
 USE_GPT_DUPLICATE_K8 = True  # hosted-proven with current-template index 11565
 GPT_DUPLICATE_K8_BANK_N = 500
 GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
-GPT_DUPLICATE_K8_TEMPLATE = "current_numeric_system_low"  # local +14.1% grouped over 55702490
+GPT_DUPLICATE_K8_TEMPLATE = "current_bare_digits_opaque"  # local best exact-K8 GPT duplicate arm
 GPT_ONLINE_SELECT_K8 = True  # race exact-K8 GPT duplicate arms on the hosted row
 GPT_ONLINE_SELECT_TEMPLATES = (
     "current_bare_digits_opaque,current_proto_digits_literal,current_numeric_system_low,current_numeric_1_8"
