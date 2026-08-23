@@ -1359,6 +1359,7 @@ Artifacts:
 `runs/tmp/sequence-arena-gpt-exactphrase-chain4-guard5-candidate-cold-n2.json`,
 `runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-confirm-candidate-cold-n10.json`,
 `runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-anchor-candidate-cold-n5.json`,
+`runs/tmp/sequence-arena-gpt-exactphrase-chain34-blockguards-candidate-cold-n2.json`,
 and
 `runs/tmp/sequence-arena-gpt-exactphrase-chain2-guard5-force-cold-n3.json`.
 
@@ -1383,6 +1384,14 @@ after URL `5`, call `6`, then `7`, then `8`.
 | same-run anchor n=5 | numeric 56.547; single exact 69.049 | 70.564 | all exact | chain beats numeric by +24.8%, single exact by +2.2% in this run |
 | force-cold n=3 | 37.262 | 33.855 | both exact | transfer-risk negative |
 | 4x candidate-cold n=2 | 64.387 single exact | 60.687 for `chain4_guard5` | chain only `23x2`, not 32 | reject scaling beyond 2x |
+
+Follow-up block-numbered guards did not recover 3x/4x scaling:
+`chain2_guard5` stayed exact at `16x2` and 65.484 raw/s, but
+`chain3_exactphrase_analysis_blocknum_guardall_duplicate` produced only `16x2`
+at 55.322 raw/s with traces shaped `8+5+3`.  The targeted `guard345` variant
+produced zero posts for both 3x and 4x because the SDK hit
+`TypeError: argument of type 'int' is not iterable`.  This confirms the useful
+ceiling is the current 2-message guard, not higher multiblock replay.
 
 Production integration is selector-only.  `current_numeric_1_8` remains the
 hosted-proven fallback, while the online selector can now probe the 2-message
