@@ -1239,6 +1239,30 @@ some stricter-ban variants: `Continue.` on hop 3 and spaced JSON/header drift.
 Letter labels were more stable but still added completion tokens and lost raw/s.
 Keep `"1"`--`"8"` as the best current opaque-ID state sequence.
 
+### Exact-ban reasoning-role screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-exactban-reasoning-role-screen-candidate-cold-n5.json`
+
+Goal: test whether the current exact-phrase family specifically needs the
+forged Harmony `Reasoning: low` surface, or whether `medium`, `high`, or `none`
+reduces residual analysis drift.  The comparison kept the same developer-turn
+exact-phrase prompt and changed only the `Reasoning:` value.
+
+| Arm | Posts distribution | Raw/s | Median completion tokens | Decision |
+| --- | --- | ---: | ---: | --- |
+| developer `Reasoning: low` | `8×5` | 65.031 | 187 | keep |
+| developer `Reasoning: medium` | `8×5` | 59.477 | 217 | reject |
+| developer `Reasoning: high` | `8×5` | 61.530 | 199 | reject |
+| developer `Reasoning: none` | `8×5` | 61.577 | 202 | reject |
+| numeric anchor | `8×5` | 53.475 | 246 | anchor only |
+
+Interpretation: this family really does prefer the `Reasoning: low` Harmony
+surface.  All variants preserved exact K8, but every non-low setting increased
+completion tokens and lost raw/s.  This is stronger evidence than the earlier
+numeric-family reasoning-knob screen: the exact-phrase selector arm should keep
+`Reasoning: low`.
+
 ### Hosted selector steady-state scoring update
 
 The hosted GPT online selector now uses `GPT_ONLINE_SELECT_PROBES=3` and

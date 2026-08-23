@@ -433,6 +433,18 @@ A label-shape screen kept the same exact-phrase prompt and changed only the one-
 
 The original `"1"`-`"8"` sequence remains the cheapest stable state label sequence in this prompt family. Zero-based labels introduced `Continue.` and spaced JSON/header drift; letters were stable but still slower.
 
+A reasoning-role screen kept the same exact-phrase prompt and changed only the forged Harmony `Reasoning:` value:
+
+| arm | candidate-cold posts | raw/s | completion tokens | decision |
+|---|---:|---:|---:|---|
+| developer `Reasoning: low` | 5 x K8 | 65.031 | 187 | keep |
+| developer `Reasoning: medium` | 5 x K8 | 59.477 | 217 | reject |
+| developer `Reasoning: high` | 5 x K8 | 61.530 | 199 | reject |
+| developer `Reasoning: none` | 5 x K8 | 61.577 | 202 | reject |
+| numeric anchor | 5 x K8 | 53.475 | 246 | anchor only |
+
+This closes a possible ambiguity from the earlier numeric-family reasoning screen. The exact-phrase selector arm specifically wants the developer `Reasoning: low` surface; non-low values preserve K8 but add completion tokens.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector
@@ -979,6 +991,7 @@ This section is meant to answer the practical handoff question: “did we alread
 - **GPT exact-phrase period-specific filler ban** - negative. Evidence: period-specific ban stayed exact K8 but dropped to 58.018 raw/s and 219 completion tokens versus 64.955 raw/s and 187 tokens for existing exact-phrase; trace added more filler. Decision: do not strengthen negative wording.
 - **GPT exact-phrase JSON key-order prompting** - negative. Evidence: stayed exact K8, but explicit `data,url` order scored 62.385 raw/s and short `JSON:data,url` scored 59.545 raw/s versus 64.723 for existing exact-phrase; call 1 still used `url,data`. Decision: do not prompt JSON order.
 - **GPT exact-phrase label-shape alternatives** - negative. Evidence: zero-based `0`-`7` scored 60.065 raw/s and letters `a`-`h` scored 62.722 raw/s versus 64.452 for existing `1`-`8`; all were exact K8. Decision: keep `1`-`8` labels.
+- **GPT exact-phrase reasoning-role alternatives** - negative. Evidence: developer `Reasoning: medium/high/none` all stayed exact K8 but scored 59.477/61.530/61.577 raw/s versus 65.031 for developer `Reasoning: low`. Decision: keep `Reasoning: low`.
 - **GPT Harmony developer-low numeric** - failed reliability. Evidence: candidate-cold exact K8, but grouped/warm was 1 x K8 and 19 x K7. Decision: do not submit.
 - **GPT plain bare digit/letter URL queues** - mostly negative. Evidence: plain bare digits can be slower or K7; bare letters failed under system-low. Decision: superseded by opaque-ID wording.
 - **GPT repeat-to-cap search** - failed/negative. Evidence: repeat-cap variants were slower, early-stopping, or zero-post; best reliable exact K8 repeat-cap was only 32.277 raw/s. Decision: drop this family.
