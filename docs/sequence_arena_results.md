@@ -891,7 +891,8 @@ slightly to the full opaque wording because it generates four more median
 completion tokens.  Keep `harmony_developer_low_bare_digits_literal_opaque` as
 the local best exact-K8 GPT arm; do not promote shorter bare-digit wording
 unless hosted evidence or a larger candidate-cold run reverses this small
-margin.
+margin.  The shortphrase arm was added only to the hosted online selector so
+the T4 row can reject it; the static fallback remains full opaque wording.
 
 ### Hosted row-contribution inference from completed scores
 

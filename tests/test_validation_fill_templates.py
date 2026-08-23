@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_validation_fill_module():
+    path = ROOT / "attacks" / "05_validation_fill" / "attack.py"
+    spec = importlib.util.spec_from_file_location("validation_fill_templates", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_developer_low_shortphrase_template_is_selector_addressable() -> None:
+    module = load_validation_fill_module()
+
+    template = "developer_low_bare_digits_opaque_shortphrase"
+    assert template in module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
+    assert module._template_bank_code(template) == "F"
+
+    msg = module._banked_k8_msg(("F", 11565), 8)
+
+    assert "Reasoning: low" in msg
+    assert "<|start|>developer<|message|>" in msg
+    assert "url is opaque ID; use exact strings." in msg
+    assert '"1", "2", "3", "4", "5", "6", "7", "8"' in msg
+    assert "The url argument is an opaque string ID" not in msg
