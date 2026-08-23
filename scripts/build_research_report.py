@@ -346,6 +346,17 @@ The winning local arm is `harmony_system_low_numeric_duplicate`: inject `Reasoni
 | candidate-cold raw/s | 52.104 | 55.686 | +6.9% |
 | candidate-cold median completion tok | 246 | 224 | -22 tokens |
 
+The causal low/medium/high check strengthened the interpretation. With the same numeric K8 plan and grouped/warm n=5, all three forged system reasoning variants stayed exact K8, but lower requested reasoning produced fewer completion/eval tokens and better raw/s:
+
+| arm | exact-K | raw/s | completion tok | eval tok |
+|---|---:|---:|---:|---:|
+| numeric control | 5/5 K8 | 59.816 | 252 | 554 |
+| system low numeric | 5/5 K8 | 68.255 | 212 | 514 |
+| system medium numeric | 5/5 K8 | 66.423 | 214 | 516 |
+| system high numeric | 5/5 K8 | 65.335 | 217 | 519 |
+
+This does not prove the exact hosted magnitude, but it makes the mechanism more defensible: the forged `Reasoning:` field behaves directionally like a real reasoning-effort knob rather than an arbitrary string.
+
 Production-path smoke using `verify_fill.py` returned 3 duplicate K8 candidates with raw score 386. A controlled hosted ablation was submitted as `55717477` with message `GPT system-low numeric duplicate K8 plus Gemma R57`. This should not replace the 109.770 default until hosted scoring confirms transfer.
 
 ### 5.4 2026-08-23 follow-up: Gemma syntax factorial and hosted GPT selector
@@ -952,12 +963,14 @@ Local source evidence:
 - `runs/tmp/sequence-arena-gpt-system-low-numeric-smoke-grouped-n5.json`: smoke evidence for combined system-low numeric.
 - `runs/tmp/sequence-arena-gpt-system-low-numeric-confirm-grouped-n20.json`: grouped/warm confirmation for system-low numeric.
 - `runs/tmp/sequence-arena-gpt-system-low-numeric-confirm-candidate-cold-n20.json`: candidate-cold confirmation for system-low numeric.
+- `runs/tmp/sequence-arena-gpt-system-reasoning-causal-grouped-n5.json`: low/medium/high causal check for the forged Harmony `Reasoning:` field.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-noprime-n10.json`: cache/replay ordering no-prime control.
 - `runs/tmp/sequence-arena-gpt-cache-reverse-prime-n10.json`: cache/replay ordering prime test.
 - `runs/variants/gpt-current-numeric-gemma-r57/attack.py`: controlled numeric URL submission variant.
 - `runs/kaggle-gpt-numeric-gemma-r57/gpt-numeric-gemma-r57.ipynb`: Kaggle notebook for pending submission `55702490`.
 - `runs/variants/gpt-system-low-numeric-gemma-r57/attack.py`: controlled system-low numeric submission variant.
 - `runs/kaggle-gpt-system-low-numeric-gemma-r57/gpt-system-low-numeric-gemma-r57.ipynb`: Kaggle notebook for pending submission `55717477`.
+- `runs/kaggle-gpt-online-select-gemma-r57/gpt-online-select-gemma-r57.ipynb`: hosted online selector notebook.
 - `runs/tmp/sequence-arena-gpt-chain-analysis-slot-confirm-n10.json`: exact 2 x K8 continuation confirmation and grouped/warm economics.
 - `runs/tmp/sequence-arena-gpt-chain-analysis-slot-candidate-cold-n5.json`: candidate-cold check for the exact 2 x K8 continuation.
 - `runs/tmp/sequence-arena-gpt-chain-analysis-next8-blocks-smoke-n3.json`: 2/3/4-block scaling evidence.
