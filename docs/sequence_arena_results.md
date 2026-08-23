@@ -840,3 +840,41 @@ unique cells, but the final `http://u*.co` URL caused 17--19 extra median
 completion tokens and a 25-ish eval-token increase.  That overhead is far above
 the ~1.56% break-even for a +2 novelty bonus on a K8 finding.  Keep duplicate
 developer bare-opaque as the faster local shape.
+
+### Hosted row-contribution inference from completed scores
+
+Source: Kaggle API refresh on 2026-08-23 while the newer system-low/selector
+submissions were still pending.
+
+Completed hosted anchors:
+
+| Ref | Public | Description |
+| --- | ---: | --- |
+| `55652559` | 91.640 | Gemma R57 isolated on safe GPT baseline |
+| `55652403` | 101.955 | GPT current duplicate on safe baseline; Gemma off |
+| `55676922` | 106.250 | GPT current duplicate plus Gemma R57 |
+| `55698927` | 107.850 | GPT current no-final duplicate plus Gemma R57 |
+| `55702490` | 109.770 | GPT numeric 1-8 duplicate plus Gemma R57 |
+
+Under the public-score identity `public = (gpt_row + gemma_row) / 2`, the paired
+submissions give these relative effects:
+
+- GPT current duplicate over the safe GPT baseline:
+  `2 * (106.250 - 91.640) = +29.220` row points.
+- Gemma R57 over the safe/off Gemma baseline, using the closest current-duplicate
+  pair:
+  `2 * (106.250 - 101.955) = +8.590` row points.
+- GPT numeric 1-8 over GPT current duplicate with Gemma held at R57:
+  `2 * (109.770 - 106.250) = +7.040` row points.
+- GPT no-final over GPT current duplicate with Gemma held at R57:
+  `2 * (107.850 - 106.250) = +3.200` row points.
+
+Interpretation: this is not a full absolute row decomposition because the
+"safe baseline" commits are not necessarily byte-identical across all probes,
+but the direction is strong.  Public-score movement has mostly come from GPT
+throughput/template changes.  Gemma R57 was essential and hosted-proven, but the
+remaining public gap is more likely to come from GPT system-low/selector transfer
+or another GPT continuation architecture than from Gemma wording or novelty-only
+cell work.  Until pending hosted refs `55717477`, `55718913`, `55720868`, and
+`55721360` complete, local GPT improvements should still be gated against
+`55702490` / 109.770 rather than promoted on local timings alone.
