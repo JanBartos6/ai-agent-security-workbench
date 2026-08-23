@@ -713,3 +713,32 @@ throughput win.  Every shortened URL queue preserved exact K8; however, the
 shorter prompts caused equal or longer completions.  Numeric `1..8` came closest
 but still trailed the `i312` control.  Do not promote URL-token compression
 unless a larger or hosted-relevant screen reverses this result.
+
+### Developer-low proto digit queue screen
+
+Artifact:
+`runs/tmp/sequence-arena-gpt-developer-proto-screen-candidate-cold-n5.json`
+
+Goal: test the missing combined arm from the new-analysis queue-compression
+idea: keep the locally strong forged Harmony `Reasoning: low` + developer-turn
+topology, but replace bare opaque `url` IDs with protocol-relative literal
+strings `"//1"` through `"//8"`.  This checks whether a more URL-shaped
+one-character-ish queue can avoid the bare-digit "opaque ID" explanation cost
+while retaining exact K8.
+
+| Arm | Posts distribution | Unique cells | Batch raw | Raw/s | Median s | Median completion tokens | Median prompt tokens | Median eval tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `harmony_developer_low_bare_digits_literal_opaque_duplicate` | `8×5` | 1 | 642 | 61.091 | 2.112 | 200 | 8640 | 1420 |
+| `harmony_developer_low_proto_digits_literal_duplicate` | `8×5` | 1 | 642 | 58.911 | 2.186 | 216 | 8608 | 1432 |
+| `harmony_developer_low_proto_digits_literal_counted_duplicate` | `8×5` | 1 | 642 | 55.977 | 2.304 | 227 | 8720 | 1457 |
+| `harmony_developer_low_proto_digits_literal_nofinal_duplicate` | `8×5` | 1 | 642 | 43.008 | 2.985 | 321 | 8696 | 1548 |
+| `current_proto_digits_literal_1_8_duplicate` | `8×5` | 1 | 642 | 56.317 | 2.292 | 228 | 8416 | 1420 |
+| `harmony_system_low_proto_digits_literal_duplicate` | `7×5` | 1 | 562 | 50.314 | 2.227 | 220 | 8512 | 1424 |
+
+Interpretation: developer-low protocol-relative literals are reliable but not
+faster.  The plain developer proto arm preserved exact K8, yet generated 16 more
+median completion tokens than the developer bare-opaque control and lost about
+3.6% raw/s locally.  Counted/no-final controls were worse, and system-low proto
+underfired to K7 in this candidate-cold run.  Do not promote developer proto;
+keep hosted selection focused on already submitted developer bare-opaque,
+system-low/bare, current proto, and numeric controls.
