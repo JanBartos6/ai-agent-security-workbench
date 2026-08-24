@@ -141,18 +141,41 @@ def main() -> int:
     parser.add_argument("--exfil-survival", type=float, default=0.15)
     parser.add_argument("--hedge-survival", type=float, default=0.60)
     parser.add_argument("--preview-n", type=int, default=12)
+    parser.add_argument(
+        "--use-attack-defaults",
+        action="store_true",
+        help=(
+            "Read template, bank index/count, hedge enable/count/position from the "
+            "loaded attack.py constants instead of CLI defaults."
+        ),
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     attack = load_attack_module(args.attack)
+    template = str(args.template)
+    bank_index = int(args.bank_index)
+    bank_n = int(args.bank_n)
+    hedge_count = int(args.hedges)
+    position = str(args.position)
+    if args.use_attack_defaults:
+        template = str(getattr(attack, "GPT_DUPLICATE_K8_TEMPLATE", template))
+        bank_index = int(getattr(attack, "GPT_DUPLICATE_K8_BANK_INDEX", bank_index))
+        bank_n = int(getattr(attack, "GPT_DUPLICATE_K8_BANK_N", bank_n))
+        hedge_count = (
+            int(getattr(attack, "GPT_DEPUTY_HEDGE_N", 0))
+            if bool(getattr(attack, "USE_GPT_DEPUTY_HEDGE", False))
+            else 0
+        )
+        position = str(getattr(attack, "GPT_DEPUTY_HEDGE_POSITION", position))
     candidates = build_gpt_hedge_mix(
         attack,
-        template=args.template,
-        bank_index=args.bank_index,
-        bank_n=args.bank_n,
-        hedge_count=args.hedges,
+        template=template,
+        bank_index=bank_index,
+        bank_n=bank_n,
+        hedge_count=hedge_count,
         cap=args.cap,
-        position=args.position,
+        position=position,
     )
     summary = summarize_candidates(candidates, preview_n=args.preview_n)
     economics = evaluate_hedge_scenario(
@@ -162,12 +185,13 @@ def main() -> int:
     )
     payload = {
         "attack": str((ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack),
-        "template": args.template,
-        "bank_index": args.bank_index,
-        "bank_n": args.bank_n,
-        "hedges_requested": args.hedges,
+        "template": template,
+        "bank_index": bank_index,
+        "bank_n": bank_n,
+        "hedges_requested": hedge_count,
         "cap": args.cap,
-        "position": args.position,
+        "position": position,
+        "used_attack_defaults": bool(args.use_attack_defaults),
         "candidate_count": len(candidates),
         "summary": summary,
         "economics": {
@@ -183,8 +207,8 @@ def main() -> int:
 
     print("=== GPT hedge mix audit ===")
     print(
-        f"template={args.template} bank_index={args.bank_index} "
-        f"bank_n={args.bank_n} hedges={args.hedges} position={args.position} "
+        f"template={template} bank_index={bank_index} "
+        f"bank_n={bank_n} hedges={hedge_count} position={position} "
         f"cap={args.cap}"
     )
     print(f"candidate_count={len(candidates)} counts={summary['counts']}")

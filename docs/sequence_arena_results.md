@@ -1771,6 +1771,27 @@ default assumption `exfil_survival=0.15`, the model reports private mean delta
 `0.000`; below that EXFIL survival it favors hedge insurance, above that it
 favors pure EXFIL.
 
+Prepared local-only hedge packages, not submitted:
+
+- `runs/variants/gpt-hedge-n1-current/attack.py`:
+  `USE_GPT_DEPUTY_HEDGE=True`, `GPT_DEPUTY_HEDGE_N=1`,
+  `GPT_DEPUTY_HEDGE_POSITION="head"`, preserving `USE_GPT_DUPLICATE_K8=True`,
+  `USE_GEMMA_K8_O=True`, and fallback `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"`.
+  Notebook `runs/kaggle-gpt-hedge-n1-current/gpt-hedge-n1-current.ipynb`
+  verified embedded SHA-256
+  `02c7b6e523e7d4ab8199cb82095f87731993dd6580a7d7d1ee0644056a5ec81b`.
+- `runs/variants/gpt-hedge-n2-current/attack.py`: same defaults, but
+  `GPT_DEPUTY_HEDGE_N=2`.  Notebook
+  `runs/kaggle-gpt-hedge-n2-current/gpt-hedge-n2-current.ipynb` verified
+  embedded SHA-256
+  `cea932af08214995dc3a43f7d7d494ff8b8c2458e053cd248ff017f543018244`.
+
+Both package audits used `scripts/audit_hedge_mix.py --use-attack-defaults`.
+They confirm the hedge candidates are at the GPT replay head and secret-free,
+followed by the numeric EXFIL K8 bank.  These are final/private-risk insurance
+packages only; they should not replace the public default unless explicitly
+chosen.
+
 ### Gemma R57 intro-only compression screen
 
 Artifact:
