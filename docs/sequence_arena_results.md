@@ -1760,6 +1760,17 @@ defensible as insurance.  This supports keeping `GPT_DEPUTY_HEDGE_N=0` by
 default and only enabling `1` or `2` head hedges under an explicit final/private
 risk decision.
 
+2026-08-24 hedge-mix audit: `scripts/audit_hedge_mix.py` statically reconstructs
+the GPT replay list after optional hedge insertion, without model inference.
+Against current `attack.py`, `--hedges 1` yields `501` GPT candidates with counts
+`{"confused_deputy_hedge": 1, "exfil_k8": 500}`; the first candidate is the
+secret-free external-recipient hedge and all following previewed candidates are
+the hosted-proven numeric EXFIL K8 prompt.  `--hedges 2` yields `502` candidates
+with two head hedges followed by `500` EXFIL K8 candidates.  At the neutral
+default assumption `exfil_survival=0.15`, the model reports private mean delta
+`0.000`; below that EXFIL survival it favors hedge insurance, above that it
+favors pure EXFIL.
+
 ### Gemma R57 intro-only compression screen
 
 Artifact:

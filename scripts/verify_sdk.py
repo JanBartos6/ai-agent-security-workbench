@@ -32,6 +32,10 @@ def resolve_bundle(lock: dict[str, object]) -> Path:
         if nested.is_dir():
             return nested
 
+    workstation_bundle = Path("G:/kaggle_competition") / bundle_name
+    if workstation_bundle.is_dir():
+        return workstation_bundle
+
     return local_bundle
 
 
