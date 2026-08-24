@@ -1747,6 +1747,19 @@ Decision unchanged: this is a credible private hedge primitive, not a public
 throughput replacement.  It should remain default-off and only be inserted near
 the replay head with an explicit public-score budget.
 
+2026-08-24 hedge-budget economics: `scripts/hedge_economics.py` models the
+explicit tradeoff of replacing GPT EXFIL K8 replay candidates with GPT
+CONFUSED_DEPUTY K8 hedge candidates.  In steady-state duplicate-bank scoring,
+EXFIL K8 is `128` raw and CONFUSED_DEPUTY K8 is `32` raw.  Therefore each
+GPT-only hedge candidate costs about `(128 - 32) / 200 / 2 = 0.240` visible
+public leaderboard points.  With the current hedge survival prior `0.60`, the
+private breakeven for the displaced EXFIL primitive is only `0.15`: if we
+believe EXFIL survives private above `15%`, the hedge is negative expectation;
+if we believe EXFIL is almost certainly killed privately, a tiny head hedge is
+defensible as insurance.  This supports keeping `GPT_DEPUTY_HEDGE_N=0` by
+default and only enabling `1` or `2` head hedges under an explicit final/private
+risk decision.
+
 ### Gemma R57 intro-only compression screen
 
 Artifact:

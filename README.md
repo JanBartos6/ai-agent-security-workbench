@@ -65,6 +65,7 @@ and stricter surrogate guardrail:
 ```powershell
 .venv/Scripts/python.exe scripts/cost_model.py --rank-by public
 .venv/Scripts/python.exe scripts/cost_model.py --rank-by private
+.venv/Scripts/python.exe scripts/hedge_economics.py
 .venv/Scripts/python.exe scripts/run.ps1 -Agent deterministic -Attack attacks/05_validation_fill/attack.py -CandidateCount 2 -Guardrail private-surrogate
 ```
 
