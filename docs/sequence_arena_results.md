@@ -1549,12 +1549,17 @@ Prepared local-only next-ablation packages from hardened ref `be22fc3`:
   (`GPT_ONLINE_SELECT_K8=False`,
   `GPT_DUPLICATE_K8_TEMPLATE="developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5"`)
   with Gemma R57.  This isolates whether the locally exact 16-post GPT chain
-  transfers on hosted T4.
+  transfers on hosted T4.  Generated-package smoke:
+  `scripts/verify_fill.py --attack runs/variants/gpt-static-chain2-gemma-r57/attack.py --agent gpt_oss ...`
+  returned `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
+  `score_normalized=3.85`, `attack_elapsed_s=22.965`.
 - `runs/variants/gpt-narrow-chain2-systemlow-gemma-r57/attack.py` and
   `runs/kaggle-gpt-narrow-chain2-systemlow-r57/`: keep online selection but
   restrict arms to chain2 and the hosted-proven `current_numeric_system_low`
   family.  This tests whether the broad selector was wasting selection mass on
-  weaker bare/proto arms.
+  weaker bare/proto arms.  Generated-package smoke with reduced local halving
+  schedule `1,1` returned `candidates_returned=3`, `unique_cells=1`,
+  `score_raw=770.0`, `score_normalized=3.85`, `attack_elapsed_s=36.181`.
 
 Neither package was pushed or submitted by this note.
 

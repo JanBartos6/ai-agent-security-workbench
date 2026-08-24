@@ -536,7 +536,9 @@ successive-halving selector enabled.  After the snapshot follow-up, the local
 submission helper prepared two explicit next-ablation packages without pushing
 or submitting them: a static GPT chain2 + Gemma R57 package to isolate hosted
 2xK8 transfer, and a narrow chain2/system-low selector package to test whether
-the broad selector was spending decision mass on weaker bare/proto arms.
+the broad selector was spending decision mass on weaker bare/proto arms.  Both
+generated packages passed small real GPT-OSS `verify_fill` smokes and returned
+three duplicate 16-post candidates (`score_raw=770.0`).
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
