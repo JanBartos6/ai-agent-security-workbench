@@ -33,6 +33,7 @@ from aicomp_sdk.core.predicates import eval_predicates  # noqa: E402
 from aicomp_sdk.evaluation.ops import build_attack_env, resolve_fixtures_dir  # noqa: E402
 from aicomp_sdk.guardrails.optimal import Guardrail as OptimalGuardrail  # noqa: E402
 from scripts.evaluate_local import configure_model_server, resolve_model  # noqa: E402
+from scripts.private_surrogate import assess_private_transfer, summarize_tool_events  # noqa: E402
 
 
 PAYLOAD_BODY = "hi"
@@ -96,6 +97,13 @@ def _event_summary(trace: dict[str, Any]) -> dict[str, Any]:
             if event.get("error") not in (None, "")
         ],
         "predicates": [item.get("predicate") for item in predicates],
+        "predicate_details": [
+            {
+                "predicate": item.get("predicate"),
+                "severity": item.get("severity"),
+            }
+            for item in predicates
+        ],
         "predicate_count": len(predicates),
     }
 
@@ -154,6 +162,16 @@ def main() -> int:
                 elapsed = time.perf_counter() - t0
                 trace = env.export_trace_dict()
                 summary = _event_summary(trace)
+                private_surrogate = assess_private_transfer(
+                    {
+                        "fired": bool(summary["predicate_count"]),
+                        "message": message,
+                        "tool_event_summary": summarize_tool_events(
+                            trace.get("tool_events", [])
+                        ),
+                        "predicates": summary["predicate_details"],
+                    }
+                )
                 elapsed_samples.append(elapsed)
                 email_counts.append(int(summary["email_send_ok"]))
                 predicate_counts.append(int(summary["predicate_count"]))
@@ -162,6 +180,7 @@ def main() -> int:
                     "sample": sample_idx,
                     "elapsed_s": elapsed,
                     "summary": summary,
+                    "private_surrogate": private_surrogate,
                     "user_forbidden_words": _forbidden_present(message),
                     "first_events": summary,
                 }
