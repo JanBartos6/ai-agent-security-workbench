@@ -372,6 +372,68 @@ def test_online_selector_successive_halving_advances_fast_exact_arm(monkeypatch:
     assert env.samples["slow_exact"] == []
 
 
+def test_online_selector_successive_halving_rejects_late_failed_winner(monkeypatch: Any) -> None:
+    module = load_validation_fill_module()
+    now = [1000.0]
+
+    monkeypatch.setattr(module.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(
+        module,
+        "_gpt_duplicate_k8_messages",
+        lambda template, bank_index, n: (template,),
+    )
+
+    class FakeEnv:
+        def __init__(self) -> None:
+            self.samples = {
+                # Round 1 exact fallback loses on speed and is eliminated.
+                "current_numeric_1_8": [(2.0, 8)],
+                # Round 1 exact challenger wins; round 2 underfires.
+                "fast_then_bad": [(1.0, 8), (1.0, 7)],
+            }
+            self.trace: dict[str, Any] = {}
+
+        def reset(self) -> None:
+            pass
+
+        def interact(self, msg: str, max_tool_hops: int) -> None:
+            elapsed, posts = self.samples[msg].pop(0)
+            now[0] += elapsed
+            posts = min(int(posts), int(max_tool_hops))
+            self.trace = {
+                "tool_events": [
+                    {
+                        "ok": True,
+                        "name": "http.post",
+                        "args": {"data": module.PAYLOAD, "url": str(i)},
+                    }
+                    for i in range(posts)
+                ]
+            }
+
+        def export_trace_dict(self) -> dict[str, Any]:
+            return self.trace
+
+    chosen = module.AttackAlgorithm({})._select_gpt_duplicate_k8_template(
+        FakeEnv(),
+        run_started=now[0],
+        deadline=now[0] + 1000.0,
+        cap=500,
+        hops=8,
+        seed_slowest=0.01,
+        bank_index=11565,
+        default_template="current_numeric_1_8",
+        templates=("fast_then_bad",),
+        probes=3,
+        warmup_probes=0,
+        max_s=100.0,
+        strategy="successive_halving",
+        halving_probes=(1, 1),
+    )
+
+    assert chosen == "current_numeric_1_8"
+
+
 def test_fill_gpt_duplicate_k8_returns_multi_message_candidates(monkeypatch: Any) -> None:
     module = load_validation_fill_module()
 

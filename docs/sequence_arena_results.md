@@ -1535,6 +1535,13 @@ locally faster medium variant.  This is another example where local token/timing
 screens were useful for generating a narrow hypothesis but not sufficient to
 replace hosted evidence.
 
+Selector hardening after the snapshot follow-up: the successive-halving selector
+now returns only the top arm from the last completed confirmation round.  If a
+candidate wins an early round but underfires in a later round, the selector
+falls back to `current_numeric_1_8` instead of returning the stale early winner.
+The production defaults did not change, but this removes one plausible
+hosted-conversion failure mode for aggressive arms such as chain2.
+
 ### Replay bank size upper bound
 
 The current duplicate K8 banks use `GPT_DUPLICATE_K8_BANK_N=500` and

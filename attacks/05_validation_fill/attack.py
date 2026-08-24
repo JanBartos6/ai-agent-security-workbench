@@ -1499,6 +1499,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         if strategy_key in {"successive_halving", "halving", "successive"}:
             contenders = tuple(ordered)
             schedule = tuple(int(value) for value in (halving_probes or (probes,)) if int(value) > 0)
+            confirmed_results: list[dict[str, Any]] = []
             for round_idx, round_probes in enumerate(schedule):
                 round_results: list[dict[str, Any]] = []
                 for template in contenders:
@@ -1520,12 +1521,18 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         best_utility = float(result["utility"])
                         best_template = str(result["template"])
                 if not round_results:
-                    break
+                    # A later confirmation round can invalidate arms that won an
+                    # earlier, noisier screen.  Fail closed to the hosted-proven
+                    # fallback instead of returning a stale early-round winner.
+                    return default_template
                 round_results.sort(key=lambda item: float(item["utility"]), reverse=True)
+                confirmed_results = round_results
                 if round_idx == len(schedule) - 1:
                     break
                 keep_n = 1 if len(round_results) <= 2 else max(2, (len(round_results) + 1) // 2)
                 contenders = tuple(str(item["template"]) for item in round_results[:keep_n])
+            if confirmed_results:
+                return str(confirmed_results[0]["template"])
         else:
             for template in ordered:
                 result = self._probe_gpt_duplicate_k8_template(
