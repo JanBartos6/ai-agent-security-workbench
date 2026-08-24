@@ -1516,6 +1516,24 @@ cell work.  Until pending hosted refs `55717477`, `55718913`, `55720868`, and
 `55721360` complete, local GPT improvements should still be gated against
 `55702490` / 109.770 rather than promoted on local timings alone.
 
+2026-08-24 hosted update:
+
+| Ref | Public | Description | Decision |
+| --- | ---: | --- | --- |
+| `55717477` | 112.650 | static system-low numeric + Gemma R57 | strong transfer |
+| `55718913` | 111.370 | online select numeric/system-low + Gemma R57 | worse than static low |
+| `55720868` | 111.370 | online select system-low/proto/numeric + Gemma R57 | worse than static low |
+| `55721360` | 109.770 | bare-opaque selector + Gemma R57 | no gain over numeric anchor |
+| `55727872` | 112.970 | successive-halving selector + Gemma R57 | best so far, but only +0.320 over static low |
+
+Interpretation: hosted conversion is not broken, but the broad router is not the
+big lever.  The family that actually transfers is the numeric-system Harmony
+role prefix.  The next controlled submission should strip the router and test
+the same-family `Reasoning: medium` numeric variant, because the local
+candidate-cold causal screen had `system_medium_numeric` exact K8 and slightly
+faster/lower-completion than `system_low_numeric`.  This uses one narrow hosted
+probe rather than spending multiple submissions on broad selector mixtures.
+
 ### Replay bank size upper bound
 
 The current duplicate K8 banks use `GPT_DUPLICATE_K8_BANK_N=500` and

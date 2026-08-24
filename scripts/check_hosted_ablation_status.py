@@ -16,12 +16,13 @@ from kaggle.api.kaggle_api_extended import KaggleApi
 
 
 COMPETITION = "ai-agent-security-multi-step-tool-attacks"
-ANCHOR_REF = 55702490
-ANCHOR_SCORE = 109.770
+ANCHOR_REF = 55727872
+ANCHOR_SCORE = 112.970
+ANCHOR_LABEL = "successive-halving selector + Gemma R57"
 
-# These are the hosted ablations currently deciding whether to keep the
-# local-best selector/bare/system-low branch or roll GPT back to the proven
-# numeric template.
+# Completed hosted ablations that explain the current GPT choice.  Keep these in
+# the status page so future decisions are made against the real 112.970 anchor,
+# not the older 109.770 numeric checkpoint.
 TRACKED_REFS: dict[int, str] = {
     55717477: "system-low numeric duplicate K8 + Gemma R57",
     55718913: "online select numeric/system-low K8 + Gemma R57",
@@ -92,8 +93,8 @@ def _decision(rows: list[SubmissionStatus], *, anchor_score: float) -> str:
         )
 
     return (
-        f"ROLLBACK: all tracked ablations completed at or below anchor {anchor_score:.3f}. "
-        "Set GPT fallback/default back to current_numeric_1_8 and preserve 55702490."
+        f"KEEP_ANCHOR: all tracked ablations completed at or below anchor {anchor_score:.3f}. "
+        f"Preserve hosted anchor {ANCHOR_REF} until a newer controlled probe beats it."
     )
 
 
@@ -122,6 +123,7 @@ def main() -> int:
             json.dumps(
                 {
                     "anchor_ref": ANCHOR_REF,
+                    "anchor_label": ANCHOR_LABEL,
                     "anchor_score": args.anchor_score,
                     "tracked_refs": TRACKED_REFS,
                     "tracked_rows": [asdict(row) for row in tracked_rows],
@@ -133,10 +135,10 @@ def main() -> int:
         )
         return 0
 
-    print(f"Anchor: {ANCHOR_REF} @ {args.anchor_score:.3f}")
+    print(f"Anchor: {ANCHOR_REF} @ {args.anchor_score:.3f}  {ANCHOR_LABEL}")
     for ref in [*TRACKED_REFS, ANCHOR_REF]:
         row = next((candidate for candidate in rows if candidate.ref == ref), None)
-        label = TRACKED_REFS.get(ref, "confirmed anchor")
+        label = TRACKED_REFS.get(ref, ANCHOR_LABEL)
         if row is None:
             print(f"{ref}: MISSING from recent API page - {label}")
             continue

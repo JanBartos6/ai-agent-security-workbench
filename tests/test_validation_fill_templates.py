@@ -84,7 +84,8 @@ def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> Non
 
     templates = module._template_csv(module.GPT_ONLINE_SELECT_TEMPLATES)
 
-    assert module.GPT_DUPLICATE_K8_TEMPLATE == "current_numeric_1_8"
+    assert module.GPT_DUPLICATE_K8_TEMPLATE == "current_numeric_system_medium"
+    assert module.GPT_ONLINE_SELECT_K8 is False
     assert module.GPT_ONLINE_SELECT_PROBES == 3
     assert module.GPT_ONLINE_SELECT_WARMUP_PROBES == 1
     assert module.GPT_ONLINE_SELECT_MAX_S == 1500.0
@@ -97,7 +98,24 @@ def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> Non
         "current_bare_digits_opaque",
         "current_proto_digits_literal",
         "current_numeric_system_low",
+        "current_numeric_system_medium",
+        "current_numeric_system_high",
     )
+
+
+def test_system_medium_numeric_template_is_default_addressable() -> None:
+    module = load_validation_fill_module()
+
+    template = "current_numeric_system_medium"
+    assert module._template_bank_code(template) == "Y"
+
+    msg = module._banked_k8_msg(("Y", 11565), 8)
+
+    assert "Reasoning: medium" in msg
+    assert "<|start|>system<|message|>" in msg
+    assert "http://1.co" in msg
+    assert "http://8.co" in msg
+    assert "After all posts, final OK" in msg
 
 
 def test_online_selector_scores_duplicate_steady_state(monkeypatch: Any) -> None:

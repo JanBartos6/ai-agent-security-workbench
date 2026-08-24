@@ -46,16 +46,16 @@ def test_decision_promotes_best_completed_tracked_ref_above_anchor() -> None:
     assert "111.250" in decision
 
 
-def test_decision_rolls_back_when_all_tracked_refs_miss_anchor() -> None:
+def test_decision_keeps_anchor_when_all_tracked_refs_miss_anchor() -> None:
     decision = _decision(
         [
-            row(55717477, "COMPLETE", 109.770),
+            row(55717477, "COMPLETE", 112.650),
             row(55718913, "COMPLETE", 109.0),
             row(55720868, "COMPLETE", 100.0),
             row(55721360, "COMPLETE", 107.5),
         ],
-        anchor_score=109.770,
+        anchor_score=112.970,
     )
 
-    assert decision.startswith("ROLLBACK:")
-    assert "current_numeric_1_8" in decision
+    assert decision.startswith("KEEP_ANCHOR:")
+    assert "55727872" in decision
