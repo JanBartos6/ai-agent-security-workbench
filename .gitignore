@@ -13,6 +13,7 @@
 /runs/
 /dist/
 /codex_tmp/
+/tmp/
 
 # Local credentials and machine-specific configuration.
 .env
