@@ -1600,3 +1600,40 @@ data anchor, carried `O`, thought prefix, and no-scheme `url:a`.
 Interpretation: intro compression is negative.  The minimal intro kept K8 but
 increased completion tokens enough to lose raw/s.  The other shortened intros
 collapsed deterministically to K6.  Keep hosted-proven R57 unchanged.
+
+### Gemma snapshot-guided phase-chain continuation screen
+
+Artifacts:
+
+- `runs/tmp/gemma-phase-chain-z-nothought-n1.json`
+- `runs/tmp/gemma-phase-chain-symbol-sweep-lower-digits-n1.json`
+- `runs/tmp/gemma-phase-chain-symbol-sweep-pairs-words-n1.json`
+- `runs/tmp/gemma-phase-chain3-aw-smoke.json`
+
+Goal: test the 5.6 Pro "snapshot-guided trajectory compiler" idea on the
+Gemma R57 path.  The method was to run hosted-proven R57 to S1, snapshot that
+exact state, restore it for candidate phase-2 continuations, and require exact
+incremental posts before considering a fresh full-chain replay.
+
+The best phase-2 continuations did not reach exact +8.  They repeatedly hit a
+late parser-surface drift: after several valid native special-token calls, the
+next raw generation switched to parser-invalid JSON-ish arguments such as
+`call:http.post{"data": ...}`.
+
+| Screen | Best incremental posts from S1 | Useful details |
+| --- | ---: | --- |
+| no-thought native check | 6 | no-thought variants got only +1; regular `Z/i` and `Z/x` reproduced +6 |
+| lowercase/digit sweep | 6 | `a` and `w` reached +6; digits errored because bare numeric URL values cast to ints |
+| pair/word sweep | 6 | `WW`, `a`, and `w` reached +6; mixed pairs and words were worse |
+
+The chain-3 economics smoke then tested whether `K8 + partial + new prompt`
+could recover density despite the missing exact 2xK8.  In the same run,
+single-block R57 scored `8` posts in `16.270s`, about `7.990` raw/s.  The best
+three-message path was `phase_w_url_w -> phase_w_url_w`, which reached `17`
+total posts in an estimated `38.629s`, about `7.093` raw/s.
+
+Conclusion: the snapshot machinery is useful for fast local branching, but this
+Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found,
+and partial continuation is slower than simply replaying separate R57 K8
+candidates.  Keep Gemma on single-message hosted-proven R57 unless a future
+variant clears the exact +8 gate from S1 and then passes fresh full-chain replay.
