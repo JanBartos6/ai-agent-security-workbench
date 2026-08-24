@@ -1443,14 +1443,21 @@ SDK smoke checks:
   daily team allowance of 5 submissions had already been used, with reset about
   3 hours away.  Local artifact:
   `runs/kaggle-gpt-chain2-selector-gemma-r57/gpt-chain2-selector-gemma-r57.ipynb`.
-  Post-reset submit-only command:
-  `python scripts/kaggle_submit.py --existing-kernel janbartos/gpt-chain2-selector-gemma-r57 --kernel-version 1 --submit --message "GPT chain2 exact-phrase selector plus Gemma R57"`.
+  Historical submit-only command was recorded at the time, but this is no
+  longer a recommended next submission after later full-schedule selector and
+  round-level diagnostics downgraded chain2.  Use it only if explicitly running
+  a controlled T4-transfer probe against the `112.970` anchor.
 
 Interpretation: this is the first exact multi-message GPT candidate that clears
 the local candidate-cold gate.  It is still not a static default because
 force-cold is negative and 4x does not scale.  It belongs in the hosted online
 selector, where the T4 row can reject it if prefix reuse differs from the local
 normal path.
+
+Later correction: the broad full-schedule selector was not obviously wrong to
+prune chain2 once compared against the newer fastest exact-phrase single-K8 arm.
+Treat this section as historical evidence for chain2 viability, not as a current
+submission recommendation.
 
 ### Exact-phrase chain2 guard compression screen
 
