@@ -538,7 +538,13 @@ or submitting them: a static GPT chain2 + Gemma R57 package to isolate hosted
 2xK8 transfer, and a narrow chain2/system-low selector package to test whether
 the broad selector was spending decision mass on weaker bare/proto arms.  Both
 generated packages passed small real GPT-OSS `verify_fill` smokes and returned
-three duplicate 16-post candidates (`score_raw=770.0`).
+three duplicate 16-post candidates (`score_raw=770.0`).  A later full-schedule
+local smoke sharpened the priority: the hardened broad default selector returned
+only a single-K8 family (`score_raw=386.0`), while the generated narrow
+chain2/system-low selector with the same `3,4,5,5` schedule returned duplicate
+16-post chain2 candidates (`score_raw=770.0`).  That makes the narrow selector
+the safer next hosted ablation than static chain2: it can still fall back to a
+proven one-message family if chain2 underfires on T4.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 

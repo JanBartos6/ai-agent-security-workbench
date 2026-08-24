@@ -1563,6 +1563,23 @@ Prepared local-only next-ablation packages from hardened ref `be22fc3`:
 
 Neither package was pushed or submitted by this note.
 
+Full-schedule selector smoke after hardening:
+
+- Working-tree broad default selector, full `3,4,5,5` schedule with local
+  `gpt_online_select_max_s=240`: `candidates_returned=3`, `unique_cells=1`,
+  `score_raw=386.0`, `score_normalized=1.93`, `attack_elapsed_s=111.261`.
+  This means the broad selector returned a single-K8 family locally, not
+  chain2.
+- Generated narrow chain2/system-low selector, same full schedule and cap:
+  `candidates_returned=3`, `unique_cells=1`, `score_raw=770.0`,
+  `score_normalized=3.85`, `attack_elapsed_s=101.091`.  This means the
+  narrowed selector did select/return duplicate 16-post chain2 candidates.
+
+Updated ablation priority: if spending one hosted submission, the narrow
+chain2/system-low selector is the safer first probe than static chain2.  It can
+still fail closed to a proven one-message family if chain2 underfires on T4,
+while the static package directly tests chain2 transfer with no hosted fallback.
+
 ### Replay bank size upper bound
 
 The current duplicate K8 banks use `GPT_DUPLICATE_K8_BANK_N=500` and
