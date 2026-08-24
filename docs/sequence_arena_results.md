@@ -1549,6 +1549,17 @@ falls back to `current_numeric_1_8` instead of returning the stale early winner.
 The production defaults did not change, but this removes one plausible
 hosted-conversion failure mode for aggressive arms such as chain2.
 
+2026-08-24 packaging/provenance hardening: `scripts/check_hosted_ablation_status.py`
+now annotates tracked hosted refs with the embedded local notebook attack hash
+and whether that hash matches the current working-tree `attack.py`.  All tracked
+completed notebooks currently report `source=stale` against working-tree hash
+`9c8eb873982492bd06665f86ce54ab697f61b7d4a543a096126fe03f8d6d1878`, including
+anchor ref `55727872` whose embedded hash is
+`52874295798698b21fe531ba8d10425c343081de6bbc3bb916867e9a65a2b331`.  The
+important interpretation is provenance, not automatic rollback: ref `55727872`
+still anchors the leaderboard decision, while future submissions should build a
+fresh notebook and verify the embedded hash before push/submit.
+
 Prepared local-only next-ablation packages from hardened ref `be22fc3`:
 
 - `runs/variants/gpt-static-chain2-gemma-r57/attack.py` and
