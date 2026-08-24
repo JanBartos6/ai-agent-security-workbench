@@ -27,6 +27,17 @@ The downloaded competition directory is deliberately treated as an immutable ext
 
 The deterministic agent is a harness smoke test, not a leaderboard proxy. A zero from it can coexist with a useful prompt for GPT-OSS/Gemma because its hard-coded parser does not preserve arbitrary `http.post` payloads.
 
+## Kaggle notebook packaging guardrail
+
+Before a manual Kaggle submission, build a fresh notebook from the current attack file and verify that the embedded source hash matches:
+
+```powershell
+G:\kaggle_competition\.venv\Scripts\python.exe -X utf8 scripts\build_kaggle_notebook.py attacks\05_validation_fill\attack.py runs\kaggle-current-default\current-default.ipynb "Current Default"
+G:\kaggle_competition\.venv\Scripts\python.exe scripts\verify_kaggle_notebook_attack.py runs\kaggle-current-default\current-default.ipynb
+```
+
+Do not submit an older notebook from `runs\kaggle-*` just because its title matches the intended variant; those files can embed stale `attack.py` code.
+
 For exact target-model replay, install the pinned CUDA runtime, download the pinned GGUFs, then run one model at a time:
 
 ```powershell
