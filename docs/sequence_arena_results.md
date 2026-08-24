@@ -1675,6 +1675,8 @@ Artifacts:
 
 - `runs/tmp/gpt-chain2-snapshot-smoke-n1.json`
 - `runs/tmp/gpt-chain2-snapshot-fullmatrix-n1.json`
+- `runs/tmp/gpt-chain2-current-vs-next8-guard5-n5.json`
+- `runs/tmp/sequence-arena-gpt-global-range-chain23-candidate-cold-n3.json`
 
 Goal: test the GPT side of the 5.6 Pro trajectory-compiler idea.  Existing
 sequence-arena measurements replay full candidates.  This screen instead ran
@@ -1702,10 +1704,25 @@ reached `+6`, `analysis_next8` reached `+5`, `analysis_repeat8` and
 `analysis_repeatblock` reached `+4`, and `continue_plain` /
 `analysis_blocknum_guardall` reached `+0`.
 
+A follow-up n=5 stability check on the two closest exact continuations kept both
+at `5/5` exact +8 from S1 and `5/5` exact 16-post full replay.  Full-chain
+medians were effectively tied: `analysis_next8_guard5` at `76.695` raw/s and
+current `chain2_guard5` at `76.643` raw/s.  The actual attack-path smoke also
+passed when static chain2 was forced through `AttackAlgorithm.run`: three
+returned candidates, one duplicate cell, and `score_raw=770.0`.
+
+The later global-range test directly checked the remaining ambiguity-removal
+hypothesis from 5.6 Pro: block 2 asks for `9..16`, block 3 asks for `17..24`.
+It was negative.  Global-range chain2 stayed exact but slowed to `66.417` raw/s
+versus `71.381` for the existing local-range chain2 in the same candidate-cold
+n=3 run.  Global-range chain3 produced only `18x3` posts at `64.651` raw/s.
+The existing local-range chain3 did better at `19x3` and `68.332` raw/s, but
+still lost to 2xK8 chain2.
+
 Conclusion: snapshot branching is a valid diagnostic and could reduce local
 search cost, but it did not produce a better GPT chain2 continuation.  Keep the
 current `chain2_guard5` as the only GPT 2xK8 continuation worth selector use;
-do not replace it with compressed or block-numbered variants.
+do not replace it with compressed, block-numbered, or global-range variants.
 
 ### 5.6 Pro suggestion status after snapshot screens
 
@@ -1716,7 +1733,7 @@ do not replace it with compressed or block-numbered variants.
 | Gemma R57 compression | Intro-only, syntax-removal, and bare-key repair screens were negative or unstable; neutral bare-phase can reach K8 in `gemma_lab` but fails grouped profiler as K7 | keep hosted-proven R57 unchanged |
 | Gemma snapshot phase-chain | Best continuation reached +7 only under warm/order-sensitive conditions and still failed gen8; chain-3 raw/s lost to fresh R57 | do not use multi-message Gemma chains |
 | GPT snapshot chain2 continuation | Current `chain2_guard5` remained the fastest exact 2xK8 continuation locally | keep only current guard5 in selector; no compressed replacement |
-| Exact multi-block beyond 2x | Prior GPT 3x/4x tests degraded or underfired; Gemma chain3 lost economics | do not pursue geometric tails until exact 2x is hosted-proven and materially faster |
+| Exact multi-block beyond 2x | Prior GPT 3x/4x tests degraded or underfired; global `9..16` / `17..24` numbering also lost; Gemma chain3 lost economics | do not pursue geometric tails until exact 2x is hosted-proven and materially faster |
 | Non-EXFIL predicates | Public audit found email confused-deputy much lower value and other paths blocked | keep EXFIL K8 as public head; non-EXFIL only as private hedge |
 
 Current hosted/default status:
