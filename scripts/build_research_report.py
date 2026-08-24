@@ -546,7 +546,11 @@ candidates (`score_raw=770.0`).  The follow-up round-level diagnostic corrected
 the interpretation: against the newer fastest exact-phrase single-K8 arm,
 chain2 was exact but slightly worse by p75 replay raw/s in rounds 1--3, so the
 broad selector was not obviously wrong to prune it.  Narrow/static chain2 is
-therefore only a T4-transfer probe now, not a high-confidence improvement.
+therefore only a T4-transfer probe now, not a high-confidence improvement.  The
+selector utility was also corrected from `posts / p75_elapsed` to
+`(16 * posts + 2) / p75_elapsed`, matching the replay scorer's per-finding
+raw-score unit and preventing near-tie multi-message candidates from being
+overvalued by the lost +2 unique-cell bonus.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 

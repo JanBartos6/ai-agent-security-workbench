@@ -96,8 +96,8 @@ def _probe(
     warmup = max(0, min(int(warmup_probes), len(elapsed_samples) - 1))
     scored_elapsed = elapsed_samples[warmup:] or elapsed_samples
     scored_posts = posts_samples[warmup:] or posts_samples
-    utility = min(scored_posts) / max(_p75(scored_elapsed), 1e-9)
     raw_per_s = ((16 * min(scored_posts)) + 2) / max(_p75(scored_elapsed), 1e-9)
+    utility = raw_per_s
     return {
         "template": template,
         "messages": len(messages),
@@ -216,4 +216,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

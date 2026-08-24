@@ -1589,6 +1589,11 @@ Round-level selector diagnostic:
   wasting mass on weak arms.  It was comparing chain2 against the newer fastest
   single exact-phrase arm, and chain2 was only tied/slightly worse once replay
   time and the lost second unique-cell bonus are included.
+- The selector utility was changed from `posts / p75_elapsed` to
+  `(16 * posts + 2) / p75_elapsed` so future multi-message arms are ranked on
+  the same per-finding raw-score unit used by replay.  This is a correctness
+  fix, not a new throughput primitive; it mostly prevents over-promoting
+  near-tie multi-block candidates.
 
 Updated ablation priority: narrow/static chain2 is no longer a high-confidence
 improvement candidate.  It remains a possible hosted T4 transfer probe if we
