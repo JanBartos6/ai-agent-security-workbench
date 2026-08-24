@@ -28,6 +28,7 @@ TRACKED_REFS: dict[int, str] = {
     55718913: "online select numeric/system-low K8 + Gemma R57",
     55720868: "online select system-low/proto/numeric K8 + Gemma R57",
     55721360: "bare-opaque selector K8 + Gemma R57",
+    55740467: "system-medium numeric duplicate K8 + Gemma R57",
 }
 
 
