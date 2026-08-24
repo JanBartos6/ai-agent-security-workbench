@@ -9,13 +9,22 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+import sys
+from dataclasses import asdict, dataclass, replace
+from pathlib import Path
 from typing import Any
 
 from kaggle.api.kaggle_api_extended import KaggleApi
 
 
 COMPETITION = "ai-agent-security-multi-step-tool-attacks"
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.verify_kaggle_notebook_attack import compare_notebook_attack  # noqa: E402
+
+CURRENT_ATTACK = ROOT / "attacks" / "05_validation_fill" / "attack.py"
 ANCHOR_REF = 55727872
 ANCHOR_SCORE = 112.970
 ANCHOR_LABEL = "successive-halving selector + Gemma R57"
@@ -31,6 +40,18 @@ TRACKED_REFS: dict[int, str] = {
     55740467: "system-medium numeric duplicate K8 + Gemma R57",
 }
 
+# Local package folders for tracked hosted submissions.  Kaggle scores should be
+# interpreted against the notebook's embedded attack hash, not the current
+# working-tree source, because research commits can move quickly after a submit.
+LOCAL_NOTEBOOK_FOLDERS: dict[int, str] = {
+    55717477: "runs/kaggle-gpt-system-low-numeric-gemma-r57",
+    55718913: "runs/kaggle-gpt-online-select-gemma-r57",
+    55720868: "runs/kaggle-gpt-selector-proto-literal-gemma-r57",
+    55721360: "runs/kaggle-gpt-bare-opaque-selector-gemma-r57",
+    55727872: "runs/kaggle-gpt-halving-gemma-r57",
+    55740467: "runs/kaggle-gpt-system-medium-gemma-r57",
+}
+
 
 @dataclass(frozen=True)
 class SubmissionStatus:
@@ -41,6 +62,12 @@ class SubmissionStatus:
     date: str
     url: str
     tracked_label: str | None = None
+    local_notebook: str | None = None
+    local_attack_matches_current: bool | None = None
+    local_attack_sha256: str | None = None
+    current_attack_sha256: str | None = None
+    local_attack_metadata_sha256: str | None = None
+    local_attack_error: str | None = None
 
 
 def _public_score(submission: Any) -> float | None:
@@ -66,6 +93,57 @@ def _to_status(submission: Any) -> SubmissionStatus:
         url=str(submission.__dict__.get("_url") or ""),
         tracked_label=TRACKED_REFS.get(ref),
     )
+
+
+def _local_notebook_path(ref: int) -> Path | None:
+    folder_name = LOCAL_NOTEBOOK_FOLDERS.get(int(ref))
+    if not folder_name:
+        return None
+    folder = ROOT / folder_name
+    metadata_path = folder / "kernel-metadata.json"
+    if not metadata_path.is_file():
+        return None
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    code_file = metadata.get("code_file")
+    if not isinstance(code_file, str) or not code_file:
+        return None
+    return folder / code_file
+
+
+def _annotate_local_package_status(row: SubmissionStatus) -> SubmissionStatus:
+    notebook_path = _local_notebook_path(row.ref)
+    if notebook_path is None:
+        return row
+    try:
+        result = compare_notebook_attack(notebook_path, CURRENT_ATTACK)
+    except Exception as exc:  # noqa: BLE001
+        return replace(
+            row,
+            local_notebook=str(notebook_path),
+            local_attack_error=f"{type(exc).__name__}: {exc}",
+        )
+    return replace(
+        row,
+        local_notebook=str(notebook_path),
+        local_attack_matches_current=bool(result["matches"]),
+        local_attack_sha256=str(result["embedded_sha256"]),
+        current_attack_sha256=str(result["expected_sha256"]),
+        local_attack_metadata_sha256=(
+            None if result.get("metadata_sha256") is None else str(result["metadata_sha256"])
+        ),
+    )
+
+
+def _local_source_label(row: SubmissionStatus) -> str:
+    if row.local_notebook is None:
+        return "source=untracked"
+    if row.local_attack_error:
+        return "source=error"
+    if row.local_attack_matches_current is True:
+        return "source=current"
+    if row.local_attack_matches_current is False:
+        return "source=stale"
+    return "source=unknown"
 
 
 def _decision(rows: list[SubmissionStatus], *, anchor_score: float) -> str:
@@ -115,7 +193,7 @@ def main() -> int:
     api = KaggleApi()
     api.authenticate()
     submissions = api.competition_submissions(args.competition)[: args.limit]
-    rows = [_to_status(submission) for submission in submissions]
+    rows = [_annotate_local_package_status(_to_status(submission)) for submission in submissions]
     tracked_rows = [row for row in rows if row.ref in TRACKED_REFS or row.ref == ANCHOR_REF]
     decision = _decision(rows, anchor_score=args.anchor_score)
 
@@ -144,7 +222,10 @@ def main() -> int:
             print(f"{ref}: MISSING from recent API page - {label}")
             continue
         score = "-" if row.score is None else f"{row.score:.3f}"
-        print(f"{row.ref}: {row.status:8s} score={score:>7s}  {label}")
+        print(
+            f"{row.ref}: {row.status:8s} score={score:>7s}  "
+            f"{_local_source_label(row):14s}  {label}"
+        )
     print(decision)
     return 0
 

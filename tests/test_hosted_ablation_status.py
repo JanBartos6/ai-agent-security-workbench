@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from scripts import build_kaggle_notebook
+from scripts import check_hosted_ablation_status as status
 from scripts.check_hosted_ablation_status import SubmissionStatus, _decision
 
 
@@ -59,3 +63,46 @@ def test_decision_keeps_anchor_when_all_tracked_refs_miss_anchor() -> None:
 
     assert decision.startswith("KEEP_ANCHOR:")
     assert "55727872" in decision
+
+
+def test_local_package_annotation_marks_current_notebook(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    attack_path = tmp_path / "attack.py"
+    attack_path.write_text("def run(env):\n    return []\n", encoding="utf-8")
+    package_dir = tmp_path / "runs" / "kaggle-current"
+    notebook_path = package_dir / "current.ipynb"
+    build_kaggle_notebook.build_notebook(attack_path, notebook_path, "Current")
+
+    monkeypatch.setattr(status, "ROOT", tmp_path)
+    monkeypatch.setattr(status, "CURRENT_ATTACK", attack_path)
+    monkeypatch.setattr(status, "LOCAL_NOTEBOOK_FOLDERS", {123: "runs/kaggle-current"})
+
+    annotated = status._annotate_local_package_status(row(123, "COMPLETE", 1.0))
+
+    assert annotated.local_attack_matches_current is True
+    assert annotated.local_attack_sha256 == annotated.current_attack_sha256
+    assert status._local_source_label(annotated) == "source=current"
+
+
+def test_local_package_annotation_marks_stale_notebook(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    attack_path = tmp_path / "attack.py"
+    attack_path.write_text("def run(env):\n    return ['old']\n", encoding="utf-8")
+    package_dir = tmp_path / "runs" / "kaggle-stale"
+    notebook_path = package_dir / "stale.ipynb"
+    build_kaggle_notebook.build_notebook(attack_path, notebook_path, "Stale")
+    attack_path.write_text("def run(env):\n    return ['new']\n", encoding="utf-8")
+
+    monkeypatch.setattr(status, "ROOT", tmp_path)
+    monkeypatch.setattr(status, "CURRENT_ATTACK", attack_path)
+    monkeypatch.setattr(status, "LOCAL_NOTEBOOK_FOLDERS", {123: "runs/kaggle-stale"})
+
+    annotated = status._annotate_local_package_status(row(123, "COMPLETE", 1.0))
+
+    assert annotated.local_attack_matches_current is False
+    assert annotated.local_attack_sha256 != annotated.current_attack_sha256
+    assert status._local_source_label(annotated) == "source=stale"
