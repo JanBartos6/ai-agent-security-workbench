@@ -1637,3 +1637,41 @@ Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found,
 and partial continuation is slower than simply replaying separate R57 K8
 candidates.  Keep Gemma on single-message hosted-proven R57 unless a future
 variant clears the exact +8 gate from S1 and then passes fresh full-chain replay.
+
+### GPT snapshot-guided chain2 continuation screen
+
+Artifacts:
+
+- `runs/tmp/gpt-chain2-snapshot-smoke-n1.json`
+- `runs/tmp/gpt-chain2-snapshot-fullmatrix-n1.json`
+
+Goal: test the GPT side of the 5.6 Pro trajectory-compiler idea.  Existing
+sequence-arena measurements replay full candidates.  This screen instead ran
+the current exact-phrase GPT block1 once, snapshotted S1, restored S1 for each
+candidate second-block prompt, and full-replayed only exact +8 continuations.
+
+Block1 in the full-matrix run reached `8` posts in `1.943s`, about `66.913`
+raw/s.  The marginal continuation screen found several exact +8 variants, but
+the existing production-style guard stayed fastest:
+
+| Continuation | Incremental posts from S1 | Marginal s | Full replay posts | Full replay raw/s |
+| --- | ---: | ---: | ---: | ---: |
+| `current_chain2_guard5` | 8 | 1.800 | 16 | 71.153 |
+| `analysis_next8_guard5` | 8 | 1.897 | 16 | 70.870 |
+| `analysis_next8_guard5_noreceipts` | 8 | 2.025 | 16 | 68.436 |
+| `analysis_next8_guard5_suffixonly` | 8 | 2.031 | 16 | 66.130 |
+| `analysis_next8_guard5_short` | 8 | 2.040 | 16 | 66.076 |
+| `analysis_next8_guard5_nonext` | 8 | 2.239 | 16 | 65.967 |
+| `analysis_next8_guard5_min` | 8 | 2.119 | 16 | 63.979 |
+| `analysis_next8_guard567` | 8 | 2.434 | 16 | 62.520 |
+| `next8_plain` | 8 | 3.302 | 16 | 53.817 |
+
+The weaker non-exact variants underfired from S1: `analysis_blocknum_guard345`
+reached `+6`, `analysis_next8` reached `+5`, `analysis_repeat8` and
+`analysis_repeatblock` reached `+4`, and `continue_plain` /
+`analysis_blocknum_guardall` reached `+0`.
+
+Conclusion: snapshot branching is a valid diagnostic and could reduce local
+search cost, but it did not produce a better GPT chain2 continuation.  Keep the
+current `chain2_guard5` as the only GPT 2xK8 continuation worth selector use;
+do not replace it with compressed or block-numbered variants.
