@@ -539,12 +539,14 @@ or submitting them: a static GPT chain2 + Gemma R57 package to isolate hosted
 the broad selector was spending decision mass on weaker bare/proto arms.  Both
 generated packages passed small real GPT-OSS `verify_fill` smokes and returned
 three duplicate 16-post candidates (`score_raw=770.0`).  A later full-schedule
-local smoke sharpened the priority: the hardened broad default selector returned
-only a single-K8 family (`score_raw=386.0`), while the generated narrow
-chain2/system-low selector with the same `3,4,5,5` schedule returned duplicate
-16-post chain2 candidates (`score_raw=770.0`).  That makes the narrow selector
-the safer next hosted ablation than static chain2: it can still fall back to a
-proven one-message family if chain2 underfires on T4.
+local smoke showed the hardened broad default selector returning only a
+single-K8 family (`score_raw=386.0`), while the generated narrow chain2/system-
+low selector with the same `3,4,5,5` schedule returned duplicate 16-post chain2
+candidates (`score_raw=770.0`).  The follow-up round-level diagnostic corrected
+the interpretation: against the newer fastest exact-phrase single-K8 arm,
+chain2 was exact but slightly worse by p75 replay raw/s in rounds 1--3, so the
+broad selector was not obviously wrong to prune it.  Narrow/static chain2 is
+therefore only a T4-transfer probe now, not a high-confidence improvement.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 

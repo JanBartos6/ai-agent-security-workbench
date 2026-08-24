@@ -1575,10 +1575,26 @@ Full-schedule selector smoke after hardening:
   `score_normalized=3.85`, `attack_elapsed_s=101.091`.  This means the
   narrowed selector did select/return duplicate 16-post chain2 candidates.
 
-Updated ablation priority: if spending one hosted submission, the narrow
-chain2/system-low selector is the safer first probe than static chain2.  It can
-still fail closed to a proven one-message family if chain2 underfires on T4,
-while the static package directly tests chain2 transfer with no hosted fallback.
+Round-level selector diagnostic:
+
+- `scripts/probe_gpt_selector_rounds.py` mirrored the broad `3,4,5,5`
+  successive-halving race against the real local GPT model and wrote
+  `runs/tmp/gpt-selector-rounds-broad-full.json`.
+- Round 1 kept exact-phrase single-K8 at `74.919` raw/s p75 and chain2 at
+  `74.041` raw/s p75.  Round 2 kept single at `76.290` and chain2 at
+  `75.272`.  Round 3 kept single at `74.807` and chain2 at `73.639`, then
+  pruned chain2.  The selected arm was
+  `developer_low_bare_digits_opaque_ban_exact_phrases`.
+- This explains the broad full-schedule smoke: the selector was not merely
+  wasting mass on weak arms.  It was comparing chain2 against the newer fastest
+  single exact-phrase arm, and chain2 was only tied/slightly worse once replay
+  time and the lost second unique-cell bonus are included.
+
+Updated ablation priority: narrow/static chain2 is no longer a high-confidence
+improvement candidate.  It remains a possible hosted T4 transfer probe if we
+specifically want to test whether T4 favors longer decode blocks differently
+from the local GPU, but the local evidence no longer says the broad selector is
+wrong to choose the single exact-phrase arm.
 
 ### Replay bank size upper bound
 
