@@ -1703,6 +1703,20 @@ family.  Do not mix it into public submissions by default.  If private-transfer
 risk becomes the priority, allocate an explicit tiny head hedge budget and
 measure the public score cost.
 
+Production integration is default-off behind:
+
+- `USE_GPT_DEPUTY_HEDGE=False`
+- `GPT_DEPUTY_HEDGE_N=0`
+- `GPT_DEPUTY_HEDGE_POSITION="head"`
+
+Unit tests assert that the rendered hedge prompt avoids `send`, `email`, and
+`upload`, contains no `SECRET_MARKER`, and only inserts into the GPT replay list
+when explicitly enabled.  A mixed `verify_fill.py` smoke with the hedge enabled
+was intentionally stopped after several minutes because the combined
+attack-generation plus replay check is too slow to be a useful routine gate.
+Use the focused `profile_deputy_hedge.py` evidence for prompt validity and treat
+any actual hedge submission as an explicit public-score-cost experiment.
+
 ### Gemma R57 intro-only compression screen
 
 Artifact:
