@@ -1615,6 +1615,9 @@ Artifacts:
 - `runs/tmp/gemma-phase-chain-after7-extra-n1.json`
 - `runs/tmp/gemma-lab/runs/tmp/gemma-bare-single-screen-n1.json`
 - `runs/tmp/gemma-lab/runs/tmp/gemma-bare-single-after7-n1.json`
+- `runs/tmp/gemma-lab/runs/tmp/gemma-bare-phase-vs-r57-alt-n5.json`
+- `runs/tmp/sequence-arena-gemma-r58-bare-phase-candidate-cold-n3.json`
+- `runs/tmp/sequence-arena-gemma-r58-bare-phase-grouped-n5.json`
 
 Goal: test the 5.6 Pro "snapshot-guided trajectory compiler" idea on the
 Gemma R57 path.  The method was to run hosted-proven R57 to S1, snapshot that
@@ -1635,6 +1638,8 @@ next raw generation switched to parser-invalid JSON-ish arguments such as
 | after-7 continuation repairs | 4 | explicit "after 7" / "eighth" guards pulled the JSON drift earlier and regressed to +2--+4 |
 | fresh single-message bare-key screen | 7 | `bare_repair_bad_example` reached K7 with lower completion tokens, but gen8 again became quoted-key JSON |
 | fresh single-message after-7 repairs | 3 | all explicit tail clauses regressed to K2--K3/K6 rather than repairing gen8 |
+| neutral bare-phase single message | 8 | `bare_phase_no_bad_no_repair` reached 5/5 K8 in `gemma_lab`, with 223 completion tokens versus R57's 235, but this did not survive the duplicate-bank profiler gate |
+| integrated R58 bare-phase profiler | 7 | candidate-cold stayed 3/3 K8 but slower than R57; grouped duplicate mode was 5/5 K7 and only 7.285 raw/s versus R57's 5/5 K8 and 8.329 raw/s |
 
 The chain-3 economics smoke then tested whether `K8 + partial + new prompt`
 could recover density despite the missing exact 2xK8.  In the same run,
@@ -1644,13 +1649,14 @@ total posts in an estimated `38.629s`, about `7.093` raw/s.
 
 Conclusion: the snapshot machinery is useful for fast local branching, but this
 Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found.
-The strongest new lead is parser-valid bare-key syntax, which can reduce
-completion tokens and sometimes reaches K7, but the late failure is stable:
-Gemma switches to parser-invalid quoted JSON keys on the final generation.
-Explicitly mentioning the late step or bad form makes the drift happen earlier,
-so the repair is not a simple instruction-strength problem.  Keep Gemma on
-single-message hosted-proven R57 unless a future variant clears the exact +8
-gate and then passes fresh full-chain replay/economics.
+The strongest new lead is parser-valid bare-key syntax.  A neutral single-message
+bare-phase prompt can reach K8 in `gemma_lab`, but the stricter duplicate-bank
+profiler rejected it: candidate-cold was exact but slower, and grouped replay
+collapsed deterministically to K7.  Explicitly mentioning the late step or bad
+form makes the drift happen earlier, so the repair is not a simple
+instruction-strength problem.  Keep Gemma on single-message hosted-proven R57
+unless a future variant clears exact +8 in both candidate-cold and grouped
+duplicate-bank replay.
 
 ### GPT snapshot-guided chain2 continuation screen
 
@@ -1696,7 +1702,7 @@ do not replace it with compressed or block-numbered variants.
 | --- | --- | --- |
 | GPT hosted online selector / successive halving | Hosted `55727872` scored `112.970`, beating static system-low by only `+0.320` | keep as evidence; broad routers are not the main lever |
 | Static GPT system-medium numeric | Hosted `55740467` scored `111.370`, below the `112.970` halving anchor | reject as default; restore hosted-proven selector |
-| Gemma R57 compression | Intro-only, syntax-removal, and bare-key repair screens were negative or unstable; bare-key can reach K7 but not K8 | keep hosted-proven R57 unchanged |
+| Gemma R57 compression | Intro-only, syntax-removal, and bare-key repair screens were negative or unstable; neutral bare-phase can reach K8 in `gemma_lab` but fails grouped profiler as K7 | keep hosted-proven R57 unchanged |
 | Gemma snapshot phase-chain | Best continuation reached +7 only under warm/order-sensitive conditions and still failed gen8; chain-3 raw/s lost to fresh R57 | do not use multi-message Gemma chains |
 | GPT snapshot chain2 continuation | Current `chain2_guard5` remained the fastest exact 2xK8 continuation locally | keep only current guard5 in selector; no compressed replacement |
 | Exact multi-block beyond 2x | Prior GPT 3x/4x tests degraded or underfired; Gemma chain3 lost economics | do not pursue geometric tails until exact 2x is hosted-proven and materially faster |

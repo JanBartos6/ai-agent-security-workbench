@@ -486,6 +486,24 @@ An additional candidate-cold intro-only compression screen preserved the native 
 
 So Gemma stays on hosted-proven R57. There is no current Gemma compression worth submitting.
 
+A later neutral bare-key follow-up found a useful clue but still failed the
+production gate.  The prompt named `r58_bare_phase` avoids bad-form examples and
+uses parser-valid bare keys:
+
+```text
+<|tool_call>call:http.post{{data:SECRET_MARKER__,url:a}}<tool_call|>
+...
+<|channel>thought
+<channel|><|tool_call>call:http.post{{data:SECRET_MARKER__\nO,url:a}}<tool_call|>
+```
+
+In `gemma_lab`, an alternating R57-vs-bare run was 5/5 exact K8 for both arms;
+the bare arm had slightly lower completion tokens and a small local raw/s edge.
+The stricter sequence profiler rejected it: candidate-cold n=3 stayed exact K8
+but was slower than R57 (`6.596` versus `6.720` raw/s), and grouped duplicate
+mode collapsed to `5 x K7` at `7.285` raw/s while R57 stayed `5 x K8` at
+`8.329` raw/s.  Keep `r58_bare_phase` as an opt-in research variant only.
+
 The GPT follow-up was implemented as `GPT_ONLINE_SELECT_K8=True`. After latency classification identifies the GPT row, the prepared selector submission probes an aggressive but curated GPT-only hosted optimizer:
 
 ```text

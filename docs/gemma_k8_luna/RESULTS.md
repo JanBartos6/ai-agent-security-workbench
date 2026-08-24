@@ -26,6 +26,8 @@ Verification runs:
 - Round 57 opt-in attack-path smoke: `scripts/verify_fill.py --agent gemma --gpu-layers 24 --tensor-split 0.57,0.43 --budget-s 160 --attack-config-file runs\tmp\verify-fill-gemma-r57-config.json`
 - Round 58 phrase probe: `runs/tmp/gemma-lab/round58_phrase_probe_repeat2.json`
 - R57 intro-only compression screen: `runs/tmp/sequence-arena-gemma-r57-intro-screen-candidate-cold-n3.json`
+- R58 bare-phase neutral screen: `runs/tmp/gemma-lab/runs/tmp/gemma-bare-phase-vs-r57-alt-n5.json`
+- R58 bare-phase sequence gate: `runs/tmp/sequence-arena-gemma-r58-bare-phase-candidate-cold-n3.json`, `runs/tmp/sequence-arena-gemma-r58-bare-phase-grouped-n5.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -58,6 +60,15 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
 On this local run, `O` + no-scheme `a` has 110.7% of the K1 aggregate raw/s. The same-score-cell adjustment still leaves it above K1: the 40 rows have one unique score cell, so the adjusted raw is `40 * 8 * 16 + 2 = 5122`, and `5122 / 606.564s = 8.444 raw/s`.
+
+Round 58 bare-phase follow-up: a neutral parser-valid bare-key prompt reached
+5/5 exact K8 in `gemma_lab` when alternated with R57, with median 7.874 raw/s
+versus R57's 7.746 and 223 completion tokens versus 235.  The stricter
+sequence-arena gates rejected it: candidate-cold n=3 was exact but slower
+(`6.596` raw/s versus R57 `6.720`), and grouped duplicate-bank n=5 collapsed to
+5/5 K7 (`7.285` raw/s) while R57 remained 5/5 K8 (`8.329` raw/s).  The variant
+is available as opt-in `GEMMA_K8_O_VARIANT="r58_bare_phase"` for future
+research, but R57 remains the default.
 
 Round 57 removed only the phrase `Never final text.` from the Round 53 prompt.
 In the selected 20-row check it remained 20/20 exact K8 with invariant

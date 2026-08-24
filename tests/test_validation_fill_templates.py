@@ -101,6 +101,21 @@ def test_online_selector_fallback_stays_on_hosted_proven_numeric_anchor() -> Non
     )
 
 
+def test_gemma_bare_phase_variant_is_opt_in_not_default() -> None:
+    module = load_validation_fill_module()
+
+    assert module.GEMMA_K8_O_VARIANT == "r57"
+
+    r57_msg = module._gemma_k8_o_msg("r57")
+    bare_msg = module._gemma_k8_o_msg("r58_bare_phase")
+
+    assert "Use native raw form only" in r57_msg
+    assert "data:<|\"|>" in r57_msg
+    assert "Use parser-valid bare-key Gemma call syntax" in bare_msg
+    assert f"data:{module.PAYLOAD}__" in bare_msg
+    assert "data:<|\"|>" not in bare_msg
+
+
 def test_system_medium_numeric_template_is_default_addressable() -> None:
     module = load_validation_fill_module()
 
