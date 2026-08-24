@@ -28,6 +28,7 @@ Verification runs:
 - R57 intro-only compression screen: `runs/tmp/sequence-arena-gemma-r57-intro-screen-candidate-cold-n3.json`
 - R58 bare-phase neutral screen: `runs/tmp/gemma-lab/runs/tmp/gemma-bare-phase-vs-r57-alt-n5.json`
 - R58 bare-phase sequence gate: `runs/tmp/sequence-arena-gemma-r58-bare-phase-candidate-cold-n3.json`, `runs/tmp/sequence-arena-gemma-r58-bare-phase-grouped-n5.json`
+- phase-chain survivor retests: `runs/tmp/gemma-phase-chain-symbols-pb1xplus-n1.json`, `runs/tmp/gemma-phase-chain-targeted-guards-n1.json`, `runs/tmp/gemma-phase-chain-top-survivors-n3.json`, `runs/tmp/gemma-phase-chain3-top-survivors.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -69,6 +70,17 @@ sequence-arena gates rejected it: candidate-cold n=3 was exact but slower
 5/5 K7 (`7.285` raw/s) while R57 remained 5/5 K8 (`8.329` raw/s).  The variant
 is available as opt-in `GEMMA_K8_O_VARIANT="r58_bare_phase"` for future
 research, but R57 remains the default.
+
+Phase-chain continuation follow-up: the snapshot-guided R57 -> phase-2 search
+still has not found exact Gemma 2xK8.  A focused `P,B,1,X,+` screen reached only
++5 at best (`X`/`+`), while `P` and `B` collapsed to +1 and bare numeric URL
+`1` errored because the model emitted an int-valued URL.  Targeted after-5 and
+after-7 guards made the loop shorter, not longer.  The strongest survivor,
+`phase_z_bare_url_z_thought`, was +5/+7/+7 across an n=3 retest; stable
+alternatives were +6.  A chain-3 recovery smoke reached at most `19` total posts
+in `41.812s` (`7.319` raw/s), below the grouped R57 duplicate gate
+(`8.329` raw/s).  Keep Gemma on R57 unless a future phase-2 prompt clears exact
++8 and grouped replay.
 
 Round 57 removed only the phrase `Never final text.` from the Round 53 prompt.
 In the selected 20-row check it remained 20/20 exact K8 with invariant

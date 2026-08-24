@@ -43,19 +43,34 @@ from scripts.profile_sequence_arena import (  # noqa: E402
     make_sequence_llama,
 )
 from scripts.search_gemma_phase_chain import _phase_msg, _summarize, _trace_row  # noqa: E402
+from scripts.search_gemma_phase_chain import _variant_messages as _phase_chain_variants  # noqa: E402
 
 RAW_PER_EXFIL = 16
 RAW_CELL_BONUS = 2
 
 
 def _messages() -> dict[str, str]:
-    return {
+    messages = {
         "r57": _gemma_k8_o_local_msg("r57"),
         "phase_a_url_a": _phase_msg(phase="a", data_phase="a", url="a"),
         "phase_w_url_w": _phase_msg(phase="w", data_phase="w", url="w"),
         "phase_z_url_i": _phase_msg(phase="Z", data_phase="Z", url="i"),
         "phase_z_url_x": _phase_msg(phase="Z", data_phase="Z", url="x"),
     }
+    # Reuse the best phase-2 continuation surfaces found by
+    # search_gemma_phase_chain.py.  Keeping these labels identical makes the
+    # chain3 artifact directly comparable with the phase-chain search artifacts.
+    for label, message in _phase_chain_variants().items():
+        if label in {
+            "phase_z_bare_url_z_thought",
+            "phase_z_bare_url_z_nothought",
+            "phase_z_plainquote_url_z_urlfirst",
+            "phase_z_data_url_z_full",
+            "phase_z_data_url_i_full",
+            "phase_z_data_url_x_full",
+        }:
+            messages[label] = message
+    return messages
 
 
 def _raw_per_s(posts: int, elapsed_s: float) -> float:

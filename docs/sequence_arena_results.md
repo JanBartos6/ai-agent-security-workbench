@@ -1618,6 +1618,10 @@ Artifacts:
 - `runs/tmp/gemma-lab/runs/tmp/gemma-bare-phase-vs-r57-alt-n5.json`
 - `runs/tmp/sequence-arena-gemma-r58-bare-phase-candidate-cold-n3.json`
 - `runs/tmp/sequence-arena-gemma-r58-bare-phase-grouped-n5.json`
+- `runs/tmp/gemma-phase-chain-symbols-pb1xplus-n1.json`
+- `runs/tmp/gemma-phase-chain-targeted-guards-n1.json`
+- `runs/tmp/gemma-phase-chain-top-survivors-n3.json`
+- `runs/tmp/gemma-phase-chain3-top-survivors.json`
 
 Goal: test the 5.6 Pro "snapshot-guided trajectory compiler" idea on the
 Gemma R57 path.  The method was to run hosted-proven R57 to S1, snapshot that
@@ -1640,12 +1644,19 @@ next raw generation switched to parser-invalid JSON-ish arguments such as
 | fresh single-message after-7 repairs | 3 | all explicit tail clauses regressed to K2--K3/K6 rather than repairing gen8 |
 | neutral bare-phase single message | 8 | `bare_phase_no_bad_no_repair` reached 5/5 K8 in `gemma_lab`, with 223 completion tokens versus R57's 235, but this did not survive the duplicate-bank profiler gate |
 | integrated R58 bare-phase profiler | 7 | candidate-cold stayed 3/3 K8 but slower than R57; grouped duplicate mode was 5/5 K7 and only 7.285 raw/s versus R57's 5/5 K8 and 8.329 raw/s |
+| phase-keyed `P,B,1,X,+` retest | 5 | `P` and `B` collapsed to +1; `X` and `+` reached +5; bare numeric URL `1` errored because Gemma emitted an int-valued URL |
+| targeted after-5/after-7 guards | 4 | explicit late-count repairs made the drift earlier: X/plus/Z guards reached only +4, suffix-only variants collapsed to +1 |
+| top-survivor stability n=3 | 7 | `phase_z_bare_url_z_thought` produced +5/+7/+7; no-thought, plainquote-urlfirst, and native Z variants were stable +6, still no exact +8 |
 
 The chain-3 economics smoke then tested whether `K8 + partial + new prompt`
-could recover density despite the missing exact 2xK8.  In the same run,
-single-block R57 scored `8` posts in `16.270s`, about `7.990` raw/s.  The best
-three-message path was `phase_w_url_w -> phase_w_url_w`, which reached `17`
-total posts in an estimated `38.629s`, about `7.093` raw/s.
+could recover density despite the missing exact 2xK8.  The older smoke, in the
+same run where single-block R57 scored `8` posts in `16.270s` (about `7.990`
+raw/s), found `phase_w_url_w -> phase_w_url_w` at `17` total posts in an
+estimated `38.629s` (about `7.093` raw/s).  The follow-up top-survivor smoke
+tested the newer +6/+7 continuation surfaces.  Its best path was
+`phase_z_bare_url_z_thought -> phase_z_plainquote_url_z_urlfirst`, which reached
+`19` total posts in an estimated `41.812s`, about `7.319` raw/s.  That is still
+below the local grouped duplicate R57 gate of about `8.329` raw/s.
 
 Conclusion: the snapshot machinery is useful for fast local branching, but this
 Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found.
