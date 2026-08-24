@@ -96,8 +96,11 @@ def _probe(
     warmup = max(0, min(int(warmup_probes), len(elapsed_samples) - 1))
     scored_elapsed = elapsed_samples[warmup:] or elapsed_samples
     scored_posts = posts_samples[warmup:] or posts_samples
-    raw_per_s = ((16 * min(scored_posts)) + 2) / max(_p75(scored_elapsed), 1e-9)
-    utility = raw_per_s
+    steady_raw_per_s = (16 * min(scored_posts)) / max(_p75(scored_elapsed), 1e-9)
+    first_cell_raw_per_s = ((16 * min(scored_posts)) + 2) / max(
+        _p75(scored_elapsed), 1e-9
+    )
+    utility = steady_raw_per_s
     return {
         "template": template,
         "messages": len(messages),
@@ -107,7 +110,8 @@ def _probe(
         "scored_posts": scored_posts,
         "scored_elapsed": scored_elapsed,
         "utility": utility,
-        "raw_per_s_p75": raw_per_s,
+        "steady_raw_per_s_p75": steady_raw_per_s,
+        "first_cell_raw_per_s_p75": first_cell_raw_per_s,
         "median_elapsed_s": statistics.median(elapsed_samples),
         "p75_elapsed_s": _p75(scored_elapsed),
     }
@@ -188,7 +192,8 @@ def main() -> int:
                     round_results.append(result)
                     print(
                         f"    keep utility={result['utility']:.3f} "
-                        f"raw/s_p75={result['raw_per_s_p75']:.3f} "
+                        f"steady_raw/s_p75={result['steady_raw_per_s_p75']:.3f} "
+                        f"first_cell_raw/s_p75={result['first_cell_raw_per_s_p75']:.3f} "
                         f"p75_elapsed={result['p75_elapsed_s']:.3f}s",
                         flush=True,
                     )

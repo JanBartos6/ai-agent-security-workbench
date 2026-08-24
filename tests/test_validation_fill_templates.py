@@ -249,7 +249,7 @@ def test_online_selector_scores_multi_message_post_rate(monkeypatch: Any) -> Non
     assert chosen == "developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5"
 
 
-def test_online_selector_scores_multi_message_raw_bonus_loss(monkeypatch: Any) -> None:
+def test_online_selector_ignores_duplicate_bank_first_cell_bonus(monkeypatch: Any) -> None:
     module = load_validation_fill_module()
     now = [1000.0]
 
@@ -265,12 +265,13 @@ def test_online_selector_scores_multi_message_raw_bonus_loss(monkeypatch: Any) -
     class FakeEnv:
         def __init__(self) -> None:
             self.samples = {
-                # Single K8: 130 raw / 1.000s = 130.000 raw/s.
+                # Single K8 steady duplicate-bank rate: 128 raw / 1.000s.
                 "M": [1.0, 1.0],
-                # Chain2: 258 raw / 1.990s = 129.648 raw/s.
-                # This has slightly better posts/s than single K8, but lower
-                # actual score/s because the second +2 unique-cell bonus is
-                # lost inside the same finding.
+                # Chain2 steady duplicate-bank rate: 256 raw / 1.990s.  If the
+                # selector incorrectly scored the first +2 cell bonus on every
+                # duplicate candidate, single K8 would win 130.000 vs 129.648.
+                # In the real duplicate bank the repeated +2 does not exist,
+                # so chain2 should win 128.643 vs 128.000.
                 "Q1": [0.995, 0.995],
                 "Q2": [0.995, 0.995],
             }
@@ -312,7 +313,7 @@ def test_online_selector_scores_multi_message_raw_bonus_loss(monkeypatch: Any) -
         max_s=100.0,
     )
 
-    assert chosen == "current_numeric_1_8"
+    assert chosen == "developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5"
 
 
 def test_online_selector_measures_fallback_before_challengers(monkeypatch: Any) -> None:

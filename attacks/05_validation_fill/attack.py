@@ -1386,12 +1386,14 @@ class AttackAlgorithm(AttackAlgorithmBase):
 
     @staticmethod
     def _selector_utility(posts_samples: list[int], elapsed_samples: list[float]) -> float:
-        """Raw-score throughput using a p75-style per-probe latency penalty.
+        """Steady-state duplicate-bank raw throughput with p75 latency penalty.
 
-        EXFIL score is ``16 * posts + 2`` per finding, not per tool call.  This
-        matters for multi-message candidates: one 16-post finding loses the
-        second +2 unique-cell bonus that two separate 8-post findings would
-        earn.  Score arms on the same unit the replay phase scores.
+        The GPT selector fills a same-cell duplicate replay bank.  The +2 cell
+        bonus appears only once for the whole duplicate bank, so the
+        steady-state replay objective is equivalent to successful EXFIL posts
+        per second, i.e. ``16 * posts / elapsed``.  Do not add +2 per probed
+        candidate here: that would overvalue one-message candidates relative to
+        multi-message candidates in a duplicate bank.
         """
         if not posts_samples or not elapsed_samples:
             return -1.0
@@ -1399,7 +1401,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         p75_idx = min(len(values) - 1, max(0, ((3 * len(values) + 3) // 4) - 1))
         p75_elapsed = max(values[p75_idx], LAT_FLOOR_S)
         min_posts = min(int(value) for value in posts_samples)
-        raw_score = (16 * min_posts) + 2
+        raw_score = 16 * min_posts
         return raw_score / p75_elapsed
 
     def _probe_gpt_duplicate_k8_template(
