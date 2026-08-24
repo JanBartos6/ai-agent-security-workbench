@@ -1542,6 +1542,22 @@ falls back to `current_numeric_1_8` instead of returning the stale early winner.
 The production defaults did not change, but this removes one plausible
 hosted-conversion failure mode for aggressive arms such as chain2.
 
+Prepared local-only next-ablation packages from hardened ref `be22fc3`:
+
+- `runs/variants/gpt-static-chain2-gemma-r57/attack.py` and
+  `runs/kaggle-gpt-static-chain2-gemma-r57/`: force static GPT chain2
+  (`GPT_ONLINE_SELECT_K8=False`,
+  `GPT_DUPLICATE_K8_TEMPLATE="developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5"`)
+  with Gemma R57.  This isolates whether the locally exact 16-post GPT chain
+  transfers on hosted T4.
+- `runs/variants/gpt-narrow-chain2-systemlow-gemma-r57/attack.py` and
+  `runs/kaggle-gpt-narrow-chain2-systemlow-r57/`: keep online selection but
+  restrict arms to chain2 and the hosted-proven `current_numeric_system_low`
+  family.  This tests whether the broad selector was wasting selection mass on
+  weaker bare/proto arms.
+
+Neither package was pushed or submitted by this note.
+
 ### Replay bank size upper bound
 
 The current duplicate K8 banks use `GPT_DUPLICATE_K8_BANK_N=500` and

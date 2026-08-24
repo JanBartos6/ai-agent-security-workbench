@@ -89,13 +89,23 @@ def _constant_values(text: str) -> dict[str, Any]:
 def _apply_sets(text: str, sets: dict[str, str]) -> str:
     remaining = set(sets)
     out_lines: list[str] = []
+    skip_multiline_depth = 0
     for line in text.splitlines():
+        if skip_multiline_depth > 0:
+            skip_multiline_depth += line.count("(") - line.count(")")
+            if skip_multiline_depth <= 0:
+                skip_multiline_depth = 0
+            continue
         match = ASSIGN_RE.match(line)
         if match and match.group("name") in sets:
             name = match.group("name")
             comment = match.group("comment") or ""
             out_lines.append(f"{match.group('indent')}{name} = {sets[name]}{comment}")
             remaining.remove(name)
+            rhs = match.group("rhs").strip()
+            skip_multiline_depth = rhs.count("(") - rhs.count(")")
+            if skip_multiline_depth < 0:
+                skip_multiline_depth = 0
         else:
             out_lines.append(line)
     if remaining:

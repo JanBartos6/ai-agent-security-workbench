@@ -532,7 +532,11 @@ stripped same-family `system_medium_numeric` probe: exact K8 at 59.691 raw/s and
 completion tokens.  Hosted submission `55740467` answered that probe at only
 111.370, so the current code was restored to the hosted-proven
 `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"` fallback with the online
-successive-halving selector enabled.
+successive-halving selector enabled.  After the snapshot follow-up, the local
+submission helper prepared two explicit next-ablation packages without pushing
+or submitting them: a static GPT chain2 + Gemma R57 package to isolate hosted
+2xK8 transfer, and a narrow chain2/system-low selector package to test whether
+the broad selector was spending decision mass on weaker bare/proto arms.
 
 ### 5.5 2026-08-23 near-bare URL follow-up
 
