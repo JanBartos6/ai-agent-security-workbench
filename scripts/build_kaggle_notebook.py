@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 from pathlib import Path
 
@@ -67,6 +68,12 @@ def build_notebook(attack_path: Path, out_path: Path, title: str) -> None:
     if source.rstrip().endswith("\\"):
         raise ValueError("attack.py ends with a backslash which would break the raw-string embed")
 
+    attack_sha256 = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    try:
+        attack_path_for_metadata = attack_path.resolve().relative_to(ROOT)
+    except ValueError:
+        attack_path_for_metadata = attack_path.resolve()
+
     cell_source = _CELL_HEADER + source + _CELL_FOOTER
     notebook = {
         "cells": [
@@ -81,6 +88,10 @@ def build_notebook(attack_path: Path, out_path: Path, title: str) -> None:
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python", "version": "3.12"},
+            "attack_source": {
+                "path": str(attack_path_for_metadata).replace("\\", "/"),
+                "sha256": attack_sha256,
+            },
         },
         "nbformat": 4,
         "nbformat_minor": 5,
