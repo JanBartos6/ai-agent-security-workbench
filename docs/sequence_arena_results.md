@@ -1675,3 +1675,21 @@ Conclusion: snapshot branching is a valid diagnostic and could reduce local
 search cost, but it did not produce a better GPT chain2 continuation.  Keep the
 current `chain2_guard5` as the only GPT 2xK8 continuation worth selector use;
 do not replace it with compressed or block-numbered variants.
+
+### 5.6 Pro suggestion status after snapshot screens
+
+| Area | Current evidence | Decision |
+| --- | --- | --- |
+| GPT hosted online selector / successive halving | Hosted `55727872` scored `112.970`, beating static system-low by only `+0.320` | keep as evidence; broad routers are not the main lever |
+| Static GPT system-medium numeric | Local candidate-cold screen favored it; hosted `55740467` is pending | wait for hosted result before promoting |
+| Gemma R57 compression | Intro-only and syntax-removal screens were negative or unstable | keep hosted-proven R57 unchanged |
+| Gemma snapshot phase-chain | Best continuation plateaued at +6; chain-3 raw/s lost to fresh R57 | do not use multi-message Gemma chains |
+| GPT snapshot chain2 continuation | Current `chain2_guard5` remained the fastest exact 2xK8 continuation locally | keep only current guard5 in selector; no compressed replacement |
+| Exact multi-block beyond 2x | Prior GPT 3x/4x tests degraded or underfired; Gemma chain3 lost economics | do not pursue geometric tails until exact 2x is hosted-proven and materially faster |
+| Non-EXFIL predicates | Public audit found email confused-deputy much lower value and other paths blocked | keep EXFIL K8 as public head; non-EXFIL only as private hedge |
+
+Practical next move: wait for `55740467`.  If it beats `112.970`, strip the
+default toward static system-medium numeric plus Gemma R57.  If it does not,
+the current best remains successive-halving selector plus Gemma R57, and the
+remaining gap likely requires a new primitive rather than more prompt-margin
+tuning inside the already-tested K8 families.
