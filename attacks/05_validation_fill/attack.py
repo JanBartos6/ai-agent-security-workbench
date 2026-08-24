@@ -91,17 +91,15 @@ GEMMA_K8_O_EXPLICITLY_TESTED_N = 207  # bank positions 1..207 replayed 207/207 K
 USE_GPT_DUPLICATE_K8 = True  # hosted-proven with current-template index 11565
 GPT_DUPLICATE_K8_BANK_N = 500
 GPT_DUPLICATE_K8_BANK_INDEX = 11565  # n=100 arena: 100/100 K8, fastest topology arm
-GPT_DUPLICATE_K8_TEMPLATE = "current_numeric_system_medium"  # controlled same-family follow-up to 55717477 / public 112.650
-GPT_ONLINE_SELECT_K8 = False  # static numeric-system arm; router variants only marginally beat system-low hosted
+GPT_DUPLICATE_K8_TEMPLATE = "current_numeric_1_8"  # hosted-proven fallback from 55702490 / public 109.770
+GPT_ONLINE_SELECT_K8 = True  # 55727872 / public 112.970; static system-medium scored only 111.370
 GPT_ONLINE_SELECT_TEMPLATES = (
     "developer_low_bare_digits_opaque_ban_exact_phrases_chain2_guard5,"
     "developer_low_bare_digits_opaque_ban_exact_phrases,"
     "system_low_bare_digits_opaque,"
     "current_bare_digits_opaque,"
     "current_proto_digits_literal,"
-    "current_numeric_system_low,"
-    "current_numeric_system_medium,"
-    "current_numeric_system_high"
+    "current_numeric_system_low"
 )
 GPT_ONLINE_SELECT_PROBES = 3
 GPT_ONLINE_SELECT_WARMUP_PROBES = 1

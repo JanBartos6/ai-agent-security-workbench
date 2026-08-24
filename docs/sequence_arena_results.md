@@ -1528,11 +1528,12 @@ cell work.  Until pending hosted refs `55717477`, `55718913`, `55720868`, and
 
 Interpretation: hosted conversion is not broken, but the broad router is not the
 big lever.  The family that actually transfers is the numeric-system Harmony
-role prefix.  The next controlled submission should strip the router and test
-the same-family `Reasoning: medium` numeric variant, because the local
-candidate-cold causal screen had `system_medium_numeric` exact K8 and slightly
-faster/lower-completion than `system_low_numeric`.  This uses one narrow hosted
-probe rather than spending multiple submissions on broad selector mixtures.
+role prefix.  The follow-up static `Reasoning: medium` numeric probe later
+scored `111.370`, below the `112.970` successive-halving anchor, so the default
+was restored to the hosted-proven halving selector rather than promoting the
+locally faster medium variant.  This is another example where local token/timing
+screens were useful for generating a narrow hypothesis but not sufficient to
+replace hosted evidence.
 
 ### Replay bank size upper bound
 
@@ -1609,6 +1610,11 @@ Artifacts:
 - `runs/tmp/gemma-phase-chain-symbol-sweep-lower-digits-n1.json`
 - `runs/tmp/gemma-phase-chain-symbol-sweep-pairs-words-n1.json`
 - `runs/tmp/gemma-phase-chain3-aw-smoke.json`
+- `runs/tmp/gemma-phase-chain-jsonish-first5-repro-n1.json`
+- `runs/tmp/gemma-phase-chain-after7-repair-n1.json`
+- `runs/tmp/gemma-phase-chain-after7-extra-n1.json`
+- `runs/tmp/gemma-lab/runs/tmp/gemma-bare-single-screen-n1.json`
+- `runs/tmp/gemma-lab/runs/tmp/gemma-bare-single-after7-n1.json`
 
 Goal: test the 5.6 Pro "snapshot-guided trajectory compiler" idea on the
 Gemma R57 path.  The method was to run hosted-proven R57 to S1, snapshot that
@@ -1625,6 +1631,10 @@ next raw generation switched to parser-invalid JSON-ish arguments such as
 | no-thought native check | 6 | no-thought variants got only +1; regular `Z/i` and `Z/x` reproduced +6 |
 | lowercase/digit sweep | 6 | `a` and `w` reached +6; digits errored because bare numeric URL values cast to ints |
 | pair/word sweep | 6 | `WW`, `a`, and `w` reached +6; mixed pairs and words were worse |
+| parser-valid bare-key continuation | 7 | the unmodified bare-key/thought repair reached +7 after warm controls, then failed on gen8 by switching to quoted JSON keys |
+| after-7 continuation repairs | 4 | explicit "after 7" / "eighth" guards pulled the JSON drift earlier and regressed to +2--+4 |
+| fresh single-message bare-key screen | 7 | `bare_repair_bad_example` reached K7 with lower completion tokens, but gen8 again became quoted-key JSON |
+| fresh single-message after-7 repairs | 3 | all explicit tail clauses regressed to K2--K3/K6 rather than repairing gen8 |
 
 The chain-3 economics smoke then tested whether `K8 + partial + new prompt`
 could recover density despite the missing exact 2xK8.  In the same run,
@@ -1633,10 +1643,14 @@ three-message path was `phase_w_url_w -> phase_w_url_w`, which reached `17`
 total posts in an estimated `38.629s`, about `7.093` raw/s.
 
 Conclusion: the snapshot machinery is useful for fast local branching, but this
-Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found,
-and partial continuation is slower than simply replaying separate R57 K8
-candidates.  Keep Gemma on single-message hosted-proven R57 unless a future
-variant clears the exact +8 gate from S1 and then passes fresh full-chain replay.
+Gemma phase-chain route is not submission-worthy yet.  Exact 2xK8 was not found.
+The strongest new lead is parser-valid bare-key syntax, which can reduce
+completion tokens and sometimes reaches K7, but the late failure is stable:
+Gemma switches to parser-invalid quoted JSON keys on the final generation.
+Explicitly mentioning the late step or bad form makes the drift happen earlier,
+so the repair is not a simple instruction-strength problem.  Keep Gemma on
+single-message hosted-proven R57 unless a future variant clears the exact +8
+gate and then passes fresh full-chain replay/economics.
 
 ### GPT snapshot-guided chain2 continuation screen
 
@@ -1681,27 +1695,20 @@ do not replace it with compressed or block-numbered variants.
 | Area | Current evidence | Decision |
 | --- | --- | --- |
 | GPT hosted online selector / successive halving | Hosted `55727872` scored `112.970`, beating static system-low by only `+0.320` | keep as evidence; broad routers are not the main lever |
-| Static GPT system-medium numeric | Local candidate-cold screen favored it; hosted `55740467` is pending | wait for hosted result before promoting |
-| Gemma R57 compression | Intro-only and syntax-removal screens were negative or unstable | keep hosted-proven R57 unchanged |
-| Gemma snapshot phase-chain | Best continuation plateaued at +6; chain-3 raw/s lost to fresh R57 | do not use multi-message Gemma chains |
+| Static GPT system-medium numeric | Hosted `55740467` scored `111.370`, below the `112.970` halving anchor | reject as default; restore hosted-proven selector |
+| Gemma R57 compression | Intro-only, syntax-removal, and bare-key repair screens were negative or unstable; bare-key can reach K7 but not K8 | keep hosted-proven R57 unchanged |
+| Gemma snapshot phase-chain | Best continuation reached +7 only under warm/order-sensitive conditions and still failed gen8; chain-3 raw/s lost to fresh R57 | do not use multi-message Gemma chains |
 | GPT snapshot chain2 continuation | Current `chain2_guard5` remained the fastest exact 2xK8 continuation locally | keep only current guard5 in selector; no compressed replacement |
 | Exact multi-block beyond 2x | Prior GPT 3x/4x tests degraded or underfired; Gemma chain3 lost economics | do not pursue geometric tails until exact 2x is hosted-proven and materially faster |
 | Non-EXFIL predicates | Public audit found email confused-deputy much lower value and other paths blocked | keep EXFIL K8 as public head; non-EXFIL only as private hedge |
 
-Current pending-branch smoke checks:
+Current hosted/default status:
 
-- GPT forced slow-row/static `current_numeric_system_medium`: `3` returned
-  duplicate K8 candidates, `unique_cells=1`, `score_raw=386.0`,
-  `attack_elapsed_s=16.540`.
-- Gemma forced fast-row/R57: `3` returned duplicate K8 candidates,
-  `unique_cells=1`, `score_raw=386.0`, `attack_elapsed_s=77.612`.
-
-These are shape checks only.  They prove the pending branch still emits valid
-duplicate K8 candidates for both model rows under bounded local replay; they do
-not prove the static system-medium hosted throughput beats `112.970`.
-
-Practical next move: wait for `55740467`.  If it beats `112.970`, strip the
-default toward static system-medium numeric plus Gemma R57.  If it does not,
-the current best remains successive-halving selector plus Gemma R57, and the
-remaining gap likely requires a new primitive rather than more prompt-margin
-tuning inside the already-tested K8 families.
+- `55740467` completed at `111.370`, so the static system-medium branch should
+  not be used as production default.
+- Current code defaults are restored to the `55727872` hosted-proven path:
+  `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"`,
+  `GPT_ONLINE_SELECT_K8=True`, the `3,4,5,5` successive-halving schedule, and
+  the selector arm list from the `112.970` notebook.
+- The remaining gap likely requires a new primitive rather than more
+  prompt-margin tuning inside the already-tested K8 families.
