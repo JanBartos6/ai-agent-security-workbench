@@ -1954,5 +1954,15 @@ Current hosted/default status:
   `GPT_DUPLICATE_K8_TEMPLATE="current_numeric_1_8"`,
   `GPT_ONLINE_SELECT_K8=True`, the `3,4,5,5` successive-halving schedule, and
   the selector arm list from the `112.970` notebook.
+- Prepared, but not submitted, a low-risk selector fallback variant:
+  `runs/variants/gpt-selector-syslow-fallback/attack.py` and
+  `runs/kaggle-gpt-selector-syslow-fallback/gpt-selector-syslow-fallback.ipynb`.
+  It changes only the GPT selector fallback to the hosted-proven
+  `current_numeric_system_low` arm (`112.650` as a static submission) and keeps
+  `current_numeric_1_8` as a challenger.  The notebook hash verifies against the
+  variant attack source:
+  `9cefa6cbe289f922e8521a5436b03ca0fed740e2498c64e793d33877ed8a000e`.
+  This is a controlled ablation candidate, not a replacement for the confirmed
+  `112.970` anchor until hosted evidence says so.
 - The remaining gap likely requires a new primitive rather than more
   prompt-margin tuning inside the already-tested K8 families.
