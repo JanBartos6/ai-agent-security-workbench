@@ -1,33 +1,74 @@
 # AI Agent Security Workbench
 
-Reproducible local research for Kaggle's [AI Agent Security - Multi-Step Tool Attacks](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks/overview) competition.
+Python tools I built for generating attack candidates, replaying them against tool-using AI agents, and analysing scoring and runtime in OpenAI's [AI Agent Security: Multi-Step Tool Attacks](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks/overview) Kaggle competition.
 
-The downloaded competition directory is deliberately treated as an immutable external input. It is excluded from Git, checked against `sdk-integrity.lock.json`, and imported through `PYTHONPATH`/`sys.path`. Our attacks, tests, runners, notes, and experiment records live outside it.
+**Result: 16th on the public leaderboard out of 4,251 teams.** [Public leaderboard](https://www.kaggle.com/competitions/ai-agent-security-multi-step-tool-attacks/leaderboard?tab=public)
 
-## Current status
+This is a public-leaderboard result, not a final overall placement. The approach did not transfer successfully to the private evaluation. The repository documents the implementation, experiments and limitations, rather than claiming general robustness from the public score.
 
-- Competition SDK inspected: vendored `aicomp-sdk` 3.1.2, 145 files.
-- Live rules and the August 2026 evaluator update reviewed.
-- Deterministic offline evaluator and exact-GGUF runner scaffolded.
-- Initial static replay baseline included at `attacks/00_static_marker/attack.py`.
-- Structured 32-candidate factorial seed included at `attacks/01_factorial_seed/attack.py`.
-- Two-thousand-candidate replay-density baseline included at `attacks/02_scaled_baseline/attack.py`.
-- Balanced 200-candidate call-multiplicity sweep included at `attacks/03_multiplicity_sweep/attack.py`.
-- Sixty-candidate Kaggle-harness control included at `attacks/04_kaggle_60_control/attack.py`; verified 60/60 scored locally on both GPT-OSS (full offload) and Gemma (24/30 layers).
-- Validation-fill + replay-safe sizing + latency-split forge included at `attacks/05_validation_fill/attack.py` (port of the proven ~84-89 public architecture). The default path is intentionally back on the proven single-post replay-safe behavior after hosted regressions: branch06 overfill/tail-trim scored 83.745 public and the K8 slow-row multipost default scored 65.070, versus 86.805 for the replay-safe R3 artifact. To avoid wasting replay budget, the current default appends cheap untested same-template candidates after the validated prefix up to the 2,000 replay cap. Experimental overfill/K variants remain config-gated. Live-fill loop verification uses `scripts/verify_fill.py`; per-candidate token/latency measurement uses `scripts/measure_tokens.py`.
-- Both exact, pinned competition-model GGUFs and a workstation-native CUDA runtime are locally verified.
+## What I built
 
-## Quick start on Windows
+- **Local evaluation:** runners that load attack implementations, replay candidates through the competition SDK, and save scores, traces, configuration and timing.
+- **Experiment analysis:** tools to compare candidate families, measure token use and latency, and investigate differences between local and hosted results.
+- **Repeatability checks:** pinned Python dependencies and model revisions, file hashes, and tests for scoring, candidate contracts and SDK integrity.
+- **Experiment implementations:** baseline variants and adaptations of public competition approaches, with local analysis and hosted-result notes.
+
+The validation-fill implementation adapts public approaches credited to **pilkwang, canqiang and kaiwalya**, as documented in its [source header](attacks/05_validation_fill/attack.py). I do not claim to have originated those techniques. The competition SDK, target models and their components are external dependencies.
+
+## Where to start
+
+| Area | Code or documentation |
+| --- | --- |
+| Evaluation and saved run artifacts | [evaluate_local.py](scripts/evaluate_local.py) |
+| Candidate-family comparisons | [analyze_run.py](scripts/analyze_run.py), [analysis tests](tests/test_analysis.py) |
+| Scoring and SDK checks | [scoring tests](tests/test_scoring.py), [SDK integrity tests](tests/test_sdk_integrity.py) |
+| Local versus hosted evaluation | [Offline evaluation](docs/OFFLINE_EVALUATION.md) |
+| Experiment history | [Experiment log](docs/EXPERIMENTS.md), [hosted regression analysis](docs/REGRESSION_FORENSICS_2026-08-20.md) |
+
+For a small example of what the tests verify, the [scoring tests](tests/test_scoring.py) check that a synthetic severity-five finding scores **0.09**, while two findings in the same score cell total **0.17**, not 0.18: the novelty bonus is not awarded twice. These are unit-test expectations, not measured attack success rates.
+
+## Run locally
+
+The documented setup is **Windows with PowerShell and Python 3.12**. A fresh clone is not self-contained: the competition bundle must be obtained separately through Kaggle. Target-model replay also requires large model downloads and a compatible local runtime.
+
+### 1. Add the competition bundle
+
+Clone the repository, open PowerShell in its root, and place the downloaded bundle at:
+
+```text
+ai-agent-security-multi-step-tool-attacks/
+    aicomp_sdk/
+    ...remaining competition files
+```
+
+Keep the complete bundle unchanged. It is excluded from Git and checked against [sdk-integrity.lock.json](sdk-integrity.lock.json). A different bundle version will fail that check; do not bypass it merely to make verification pass.
+
+### 2. Install dependencies and verify
 
 ```powershell
 ./scripts/bootstrap.ps1
 ./scripts/verify.ps1
+```
+
+Verification checks the SDK bundle and runs the test suite. It requires the external bundle even if no target model is loaded.
+
+### 3. Run a smoke test
+
+```powershell
 ./scripts/run.ps1 -Agent deterministic -BudgetSeconds 30
 ```
 
-The deterministic agent is a harness smoke test, not a leaderboard proxy. A zero from it can coexist with a useful prompt for GPT-OSS/Gemma because its hard-coded parser does not preserve arbitrary `http.post` payloads.
+The deterministic agent checks the evaluation plumbing, not LLM attack quality. Its score is not a leaderboard proxy, and a zero does not by itself indicate a broken setup.
 
-For exact target-model replay, install the pinned CUDA runtime, download the pinned GGUFs, then run one model at a time:
+Each completed run writes a timestamped directory under `runs/`, including `summary.json` and `findings.json`. To compare a run's candidate families, replace `<run-id>` below with that directory's name:
+
+```powershell
+.venv/Scripts/python.exe scripts/analyze_run.py runs/<run-id> --group-by requested_calls style
+```
+
+### 4. Optional: replay against the target models
+
+Read the [runtime requirements and model details](docs/OFFLINE_EVALUATION.md) first. The supplied installer is tailored to a Windows workstation with a Ryzen 5900X and RTX 3080 GPUs; it requires Visual Studio 2022 C++ tools and CUDA. It is not a universal GPU installer.
 
 ```powershell
 ./scripts/install-model-runtime.ps1
@@ -36,45 +77,29 @@ For exact target-model replay, install the pinned CUDA runtime, download the pin
 ./scripts/run.ps1 -Agent gemma -BudgetSeconds 300 -GpuLayers 24 -TensorSplit '0.57,0.43'
 ```
 
-The installer reuses its ignored local wheel unless `-Rebuild` is supplied. It compiles llama.cpp for the Ryzen 5900X and RTX 3080s because the generic CUDA wheel enables AVX-512 and crashes during context creation on this CPU.
+These examples use the runner's static baseline by default, not the final competition submission. The Gemma offload settings are workstation-specific. Models are loaded one at a time; the pinned downloads total approximately 28.5 GB.
 
-`-GpuLayers -1` requests full offload and is the default. llama.cpp automatically distributes layers across visible GPUs; `-TensorSplit '0.57,0.43'` overrides the weights when display usage makes the cards asymmetric. Verified profiles on this PC are full automatic offload for GPT-OSS and 24/30 offloaded layers for Gemma. Close GPU-heavy display applications before retrying full Gemma offload.
+The local runner passes a fixed candidate count. For validation-fill implementations, this bypasses live candidate selection, so a fixed-count replay is not a reproduction of the full submission workflow.
 
-The model runner reuses the competition's own GGUF server, target-specific agent wrapper, Gemma parser patch, Gym environment, public guardrail, predicates, cell calculation, and scoring code. See [docs/OFFLINE_EVALUATION.md](docs/OFFLINE_EVALUATION.md) for the remaining parity caveats.
+## Evaluation limits
 
-After a completed local run, compare candidate families and project their score density with:
+- **Local runs are not Kaggle submissions.** Model revisions, GPU hardware, runtime builds and time budgets can differ.
+- **The private guardrail is unavailable.** The repository's `private-surrogate` option is a local stress test, not evidence about the hidden evaluator.
+- **Public success did not establish private robustness.** Some approaches depended on behaviour specific to the public guardrail.
+- **Historical results are configuration-specific.** Scores in the experiment log should be read with their corresponding artifacts and evaluator versions. The current checkout is not presented as a one-command reproduction of 16th place.
 
-```powershell
-.venv/Scripts/python.exe scripts/analyze_run.py runs/<run-id> --group-by requested_calls style
-```
+The model runner reuses the competition's model wrappers, tool environment, guardrail and scoring code. See [Offline evaluation](docs/OFFLINE_EVALUATION.md) for the remaining differences.
 
-For prompt-level throughput and private-transfer triage, use the token database
-and stricter surrogate guardrail:
+## Repository layout
 
-```powershell
-.venv/Scripts/python.exe scripts/cost_model.py --rank-by public
-.venv/Scripts/python.exe scripts/cost_model.py --rank-by private
-.venv/Scripts/python.exe scripts/run.ps1 -Agent deterministic -Attack attacks/05_validation_fill/attack.py -CandidateCount 2 -Guardrail private-surrogate
-```
+- `attacks/`: self-contained experiment implementations.
+- `scripts/`: setup, integrity verification, model downloads, evaluation and analysis.
+- `tests/`: contract, scoring, analysis, runtime and integrity checks.
+- `docs/`: competition notes, experiments and evaluation limitations.
+- `requirements-dev.lock.txt`: pinned Python dependencies.
+- `runs/`: generated reports, traces and local experiment data; ignored by Git.
+- `models/`: downloaded model files; ignored by Git.
 
-The private-surrogate path is a pessimistic local stress test, not hidden
-leaderboard evidence. It is meant to keep public-code loophole dependence visible
-while ranking prompt families by estimated prefill, decode, generation, and tool
-cost.
+For meaningful comparisons, record the SDK and attack hashes, model revision, agent, guardrail, seed, candidate and replay counts, wall time and score. Do not treat scores from different evaluator versions as directly comparable.
 
-## Repository map
-
-- `attacks/` — one self-contained `attack.py` per experiment.
-- `scripts/` — bootstrap, integrity, model download, evaluation, and PowerShell wrappers.
-- `requirements-dev.lock.txt` — exact verified Python 3.12 environment.
-- `tests/` — contract, scoring, and bundle-integrity checks.
-- `docs/COMPETITION.md` — mechanics and scoring, grounded in the live page and SDK.
-- `docs/STRATEGY.md` — prioritized research plan.
-- `docs/EXPERIMENTS.md` — concise ledger of promoted experiment results.
-- `runs/` — generated JSON reports and traces; ignored until deliberately promoted.
-
-## Research discipline
-
-Every comparison should record the SDK tree hash, attack file hash, target model revision/hash, agent, guardrail, seed, candidate count, replay count, wall time, predicate counts, and normalized score. Change one experimental variable at a time. Do not compare pre-update and post-update Kaggle scores as though they came from the same evaluator.
-
-This project is for the competition's deterministic sandbox. It does not target live services or real credentials.
+This project is for the competition sandbox. It does not target live services or real credentials.
