@@ -82,6 +82,12 @@ def main() -> int:
         default=None,
         help="Path to a JSON dict merged into the attack config; avoids shell quoting issues.",
     )
+    parser.add_argument(
+        "--print-findings",
+        type=int,
+        default=0,
+        help="Print the first N validated finding message chains and tool counts.",
+    )
     args = parser.parse_args()
 
     attack_path = (ROOT / args.attack).resolve() if not args.attack.is_absolute() else args.attack.resolve()
@@ -134,6 +140,21 @@ def main() -> int:
     print(f"score_raw={attack.score_raw}")
     print(f"score_normalized={execution.final_score}")
     print(f"attack_elapsed_s={attack.time_taken}")
+    for idx, finding in enumerate(attack.findings[: max(0, int(args.print_findings))]):
+        trace = finding.get("trace", {})
+        tool_events = trace.get("tool_events", []) if isinstance(trace, dict) else []
+        posts = sum(
+            1
+            for event in tool_events
+            if event.get("ok") is True and event.get("name") == "http.post"
+        )
+        messages = list(finding.get("user_messages", []))
+        print(f"finding[{idx}] messages={len(messages)} posts={posts}")
+        for msg_idx, message in enumerate(messages):
+            compact = str(message).replace("\r", "\\r").replace("\n", "\\n")
+            if len(compact) > 500:
+                compact = compact[:500] + "..."
+            print(f"  user[{msg_idx}]={compact}")
     return 0
 
 

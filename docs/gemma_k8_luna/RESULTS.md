@@ -26,6 +26,9 @@ Verification runs:
 - Round 57 opt-in attack-path smoke: `scripts/verify_fill.py --agent gemma --gpu-layers 24 --tensor-split 0.57,0.43 --budget-s 160 --attack-config-file runs\tmp\verify-fill-gemma-r57-config.json`
 - Round 58 phrase probe: `runs/tmp/gemma-lab/round58_phrase_probe_repeat2.json`
 - R57 intro-only compression screen: `runs/tmp/sequence-arena-gemma-r57-intro-screen-candidate-cold-n3.json`
+- R58 bare-phase neutral screen: `runs/tmp/gemma-lab/runs/tmp/gemma-bare-phase-vs-r57-alt-n5.json`
+- R58 bare-phase sequence gate: `runs/tmp/sequence-arena-gemma-r58-bare-phase-candidate-cold-n3.json`, `runs/tmp/sequence-arena-gemma-r58-bare-phase-grouped-n5.json`
+- phase-chain survivor retests: `runs/tmp/gemma-phase-chain-symbols-pb1xplus-n1.json`, `runs/tmp/gemma-phase-chain-targeted-guards-n1.json`, `runs/tmp/gemma-phase-chain-top-survivors-n3.json`, `runs/tmp/gemma-phase-chain3-top-survivors.json`
 - first integrated fast-row smoke: `scripts/verify_fill.py --agent gemma --budget-s 120 --attack-config '{"hard_n_cap":3,"split_classify_n":1}'`
 - live-validated bank-path smoke: `scripts/verify_fill.py --agent gemma --budget-s 160 --attack-config '{"hard_n_cap":3,"gemma_k8_o_bank_n":3,"split_classify_n":1}'`
 - duplicate-bank validation prefix: `runs/tmp/gemma-lab/runs/gemma_k8_luna/round56_k8_o_duplicate_500.json`
@@ -58,6 +61,26 @@ Matched local K1 comparison run: `runs/gemma_k8_luna/round31_k1_baseline_40.json
 | K1 baseline | 40 | `{1: 40}` | `{18: 40}` | 720 | 92.942s | 7.747 | 7.753 | 2.322s | 2254 / 32 |
 
 On this local run, `O` + no-scheme `a` has 110.7% of the K1 aggregate raw/s. The same-score-cell adjustment still leaves it above K1: the 40 rows have one unique score cell, so the adjusted raw is `40 * 8 * 16 + 2 = 5122`, and `5122 / 606.564s = 8.444 raw/s`.
+
+Round 58 bare-phase follow-up: a neutral parser-valid bare-key prompt reached
+5/5 exact K8 in `gemma_lab` when alternated with R57, with median 7.874 raw/s
+versus R57's 7.746 and 223 completion tokens versus 235.  The stricter
+sequence-arena gates rejected it: candidate-cold n=3 was exact but slower
+(`6.596` raw/s versus R57 `6.720`), and grouped duplicate-bank n=5 collapsed to
+5/5 K7 (`7.285` raw/s) while R57 remained 5/5 K8 (`8.329` raw/s).  The variant
+is available as opt-in `GEMMA_K8_O_VARIANT="r58_bare_phase"` for future
+research, but R57 remains the default.
+
+Phase-chain continuation follow-up: the snapshot-guided R57 -> phase-2 search
+still has not found exact Gemma 2xK8.  A focused `P,B,1,X,+` screen reached only
++5 at best (`X`/`+`), while `P` and `B` collapsed to +1 and bare numeric URL
+`1` errored because the model emitted an int-valued URL.  Targeted after-5 and
+after-7 guards made the loop shorter, not longer.  The strongest survivor,
+`phase_z_bare_url_z_thought`, was +5/+7/+7 across an n=3 retest; stable
+alternatives were +6.  A chain-3 recovery smoke reached at most `19` total posts
+in `41.812s` (`7.319` raw/s), below the grouped R57 duplicate gate
+(`8.329` raw/s).  Keep Gemma on R57 unless a future phase-2 prompt clears exact
++8 and grouped replay.
 
 Round 57 removed only the phrase `Never final text.` from the Round 53 prompt.
 In the selected 20-row check it remained 20/20 exact K8 with invariant
@@ -121,9 +144,12 @@ is one token longer than an actual newline plus `O`, and `__` costs tokens, but
 removing either piece broke exact K8.  The only compressed form in this screen
 that preserved K8 was the existing Round 57 prompt.
 
-Round 57 is available in `attacks/05_validation_fill/attack.py` as an opt-in
-config variant (`"gemma_k8_o_variant": "r57"`). Gemma K8-O itself is also
-opt-in; the production default keeps the hosted-proven Gemma K1 path.
+Round 57 is available in `attacks/05_validation_fill/attack.py` as
+`"gemma_k8_o_variant": "r57"`, and R57 is now the current production Gemma
+path.  The older caution still applies to broad/uncontrolled Gemma K8-O mixes:
+early slot-label/Gemma combinations failed hosted around 65 public, while the
+narrowed R57 path transferred after the GPT row was restored and the Gemma
+validation was kept thin.
 The opt-in attack-path smoke with `hard_n_cap=3`, `gemma_k8_o_bank_n=3`, and
 `split_classify_n=1` returned 3 candidates, `unique_cells=1`, and
 `score_raw=386`, matching `3 * 8 * 16 + 2`.
@@ -180,7 +206,7 @@ The opt-in mapping-history control still confirms that diagnosis, but the Round 
 
 The previous best public-SDK multi-message fallback remains `k6_exact_then_two_k1_rescues`: one exact K6 message followed by two ordinary one-shot rescue messages. It reached exactly eight successful posts/raw 130 in 10/10 local samples with median elapsed 19.045s and median prompt/completion tokens 15599 / 268. That is now secondary because Round 30c achieved true one-message K8.
 
-The attack integration has an opt-in `USE_GEMMA_K8_O` path: after latency classification identifies the fast row, it can live-validate Gemma K8-O candidates under the attack-generation budget, apply the same `K8_TAIL_TRIM_MULT=1.30` median tail trim to full-K8 traces, and pad the replay list to `GEMMA_K8_O_BANK_N=500` with the same locally verified duplicate prompt. A 3-candidate bank-path smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. This path is no longer default after the 65-point hosted regressions; it must be isolated in a future submission only after restoring the GPT row to the 96.010 baseline.
+The attack integration uses `USE_GEMMA_K8_O=True` by default with R57: after latency classification identifies the fast row, it live-validates a thin Gemma K8-O prefix under the attack-generation budget, applies the same `K8_TAIL_TRIM_MULT=1.30` median tail trim to full-K8 traces, and pads the replay list to `GEMMA_K8_O_BANK_N=500` with the same locally verified duplicate prompt. A 3-candidate bank-path smoke returned `score_raw=386` and `unique_cells=1`, matching `3 * 8 * 16 + 2`. Keep changes narrow: the hosted lesson was that R57 plus a restored GPT duplicate row works, not that arbitrary Gemma K8-O mixes are safe.
 
 The 500-entry Gemma bank is intentionally a duplicate bank, not 500 distinct prompt variants. The explicitly replay-tested positions are bank entries 1-207. The Round 56 prefix validation was stopped at 207/500 after every observed replay scored full K8: `raw_score_est={130: 207}`, successful `http.post` events `{8: 207}`, predicates `{8: 207}`, errors `{None: 207}`, invariant token counts `10503 prompt / 236 completion / 10739 total`, median elapsed `15.129s`, p90 `16.162s`, and max `16.575s`. Entries 208-500 are byte-identical copies of the same prompt and are classified valid by duplication, not by separate replay. Hosted verification is still required before treating the leaderboard transfer as proven.
 

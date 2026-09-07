@@ -22,6 +22,7 @@ The validation-fill implementation adapts public approaches credited to **pilkwa
 | Evaluation and saved run artifacts | [evaluate_local.py](scripts/evaluate_local.py) |
 | Candidate-family comparisons | [analyze_run.py](scripts/analyze_run.py), [analysis tests](tests/test_analysis.py) |
 | Scoring and SDK checks | [scoring tests](tests/test_scoring.py), [SDK integrity tests](tests/test_sdk_integrity.py) |
+| Notebook packaging checks | [source verifier](scripts/verify_kaggle_notebook_attack.py), [package audit](scripts/audit_kaggle_packages.py) |
 | Local versus hosted evaluation | [Offline evaluation](docs/OFFLINE_EVALUATION.md) |
 | Experiment history | [Experiment log](docs/EXPERIMENTS.md), [hosted regression analysis](docs/REGRESSION_FORENSICS_2026-08-20.md) |
 
@@ -83,6 +84,7 @@ The local runner passes a fixed candidate count. For validation-fill implementat
 
 ## Evaluation limits
 
+- **Notebook contents must match the intended source.** Build a fresh notebook when changing an implementation and verify the embedded source hash with the notebook verifier. An old notebook's title is not evidence that it contains the current code.
 - **Local runs are not Kaggle submissions.** Model revisions, GPU hardware, runtime builds and time budgets can differ.
 - **The private guardrail is unavailable.** The repository's `private-surrogate` option is a local stress test, not evidence about the hidden evaluator.
 - **Public success did not establish private robustness.** Some approaches depended on behaviour specific to the public guardrail.
